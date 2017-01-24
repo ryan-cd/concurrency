@@ -12,7 +12,7 @@ typedef struct _pa1_str {
     int (*write)(struct _pa1_str* self, char newChar);
 } pa1_str;
 
-
+void stringTest();
 
 
 
