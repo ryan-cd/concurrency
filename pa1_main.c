@@ -5,6 +5,8 @@
 #include <pthread.h>
 #include <semaphore.h>
 
+#include "pa1_str.h"
+
 struct threadParams {
     int id;
     char letter;
@@ -25,7 +27,16 @@ int main(int argc, char **argv)
     char c[3]; // c[i], i in {0, 1, 2}, are the letters to be used in the property check.
 
     char *sharedString;
+    pa1_str* str = malloc(sizeof(pa1_str));
+    
+    init(str, 10);
+    printf("Reading: %s\n\n", read(str));
+    write(str, 'a');
+    write(str, 'b');
+    write(str, 'c');
+    printf("Reading: %s\n\n", read(str));
 
+    
     if (argc < 7)
     {
         printf("Missing arguments.\n");
@@ -51,7 +62,7 @@ int main(int argc, char **argv)
     for (int i = 0; i < 3; ++i) { 
         params[i].id = i;
         params[i].letter = 'a';
-        pthread_create(&threads[i], NULL, (void *)threadFunc, (void *)&params[i]);
+        pthread_create(&threads[i], NULL, threadFunc, &params[i]);
     }
 
     for (int i = 0; i < 3; ++i) {
