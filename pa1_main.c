@@ -123,6 +123,8 @@ int main(int argc, char **argv)
 
     // Finish and clean up
     printf("Final string: %s\n", read(str));
+    free(str->str);
+    free(str);
 
     return 0;
 }
