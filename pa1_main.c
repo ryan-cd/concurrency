@@ -6,13 +6,14 @@
 
 #include <pthread.h>
 #include <semaphore.h>
+#include <stdbool.h> // bool
 
 #include "pa1_str.h"
 
 struct threadParams {
     int id;
     char letter;
-    pa1_str *pa1_str;
+    pa1_str *str;
     size_t segLength; // L
     size_t numSegments; // M
     size_t property; // i
@@ -29,8 +30,10 @@ void *threadFunc(void *p)
 {
     struct threadParams *params = (struct threadParams *)p;
 
+    printf("Hello. Thread: %d\n", params->id);
+    runTask(params->str, params->letter);
+
     do {
-        printf("Hello. Thread: %d\n", params->id);
         // Sleep for a random period between 100ms and 500ms.
         unsigned int microseconds = (rand() % (500000 + 1 - 100000)) + 100000; // Biased due to modulus.
         printf("Sleeping for %d usecs\n", microseconds);
@@ -43,7 +46,7 @@ void *threadFunc(void *p)
 
     // Property check.
     char *segment;
-    while (false /* (segment = params->pa1_str->getNextSegment()) != NULL */) {
+    while (false /* (segment = params->str->getNextSegment()) != NULL */) {
         if (propertyCheck(params->property, segment, params->segLength)) {
             pthread_mutex_lock(params->counterMutex);
             params->counter++;
@@ -61,7 +64,8 @@ int main(int argc, char **argv)
     size_t numSegments; // M is the number of segments in S to generate.
     char c[3]; // c[i], i in {0, 1, 2}, are the letters to be used in the property check.
 
-    stringTest();
+    pa1_str* str = malloc(sizeof(pa1_str));
+    init(str, 100);
     
     if (argc < 7)
     {
@@ -145,8 +149,9 @@ int main(int argc, char **argv)
 
     for (int i = 0; i < 3; ++i) {
         params[i].id = i;
-        params[i].letter = 'a';
-        params[i].pa1_str = NULL;
+
+        params[i].letter = 'a'+i;
+        params[i].str = str;
         params[i].segLength = segLength;
         params[i].numSegments = numSegments;
         params[i].property = property;
@@ -158,6 +163,9 @@ int main(int argc, char **argv)
     for (int i = 0; i < 3; ++i) {
         pthread_join(threads[i], NULL);
     }
+
+    // Finish and clean up
+    printf("Final string: %s\n", read(str));
 
     return 0;
 }

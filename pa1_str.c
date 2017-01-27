@@ -16,17 +16,21 @@ char* read(pa1_str* self) {
 }
 
 int write(pa1_str* self, char newChar) {
+    if (self->index >= self->length-1)
+        return -1;
+    pthread_mutex_lock(&self->mutex);
     self->str[self->index] = newChar;
     self->index = self->index + 1;
+    pthread_mutex_unlock(&self->mutex);
+
     return 0;
 }
 
-void stringTest() {
-    pa1_str* str = malloc(sizeof(pa1_str));
-    init(str, 10);
-    printf("Reading: %s\n\n", read(str));
-    write(str, 'a');
-    write(str, 'b');
-    write(str, 'c');
-    printf("Reading: %s\n\n", read(str));
+void runTask(pa1_str* self, char letter) {
+    printf("Thread %c starts and sees: %s\n\n", letter, read(self));
+    for (int i = 0; i < 100; i++) {
+        write(self, letter);
+    }
+
+    printf("Thread %c finishes and sees: %s\n\n", letter, read(self));
 }
