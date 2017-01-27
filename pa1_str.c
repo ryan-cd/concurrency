@@ -43,11 +43,19 @@ void runTask(pa1_str* self, char letter) {
 bool checkProperty(pa1_str* self, size_t check) {
     switch (check) {
         case 0: 
-            printf("Checking property 0");
+            printf("Checking property 0\n");
+            break;
         case 1: 
-            printf("Checking property 1");
+            printf("Checking property 1\n");
+            break;
         case 2:
-            printf("Checking property 2");
+            printf("Checking property 2\n");
+            break;
+        case 3:
+            printf("Checking property 2\n");
+            break;
+        default:
+            printf("Error: Invalid property");
     }
 
     pthread_mutex_lock(&self->mutex);

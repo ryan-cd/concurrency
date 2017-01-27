@@ -21,10 +21,10 @@ struct threadParams {
     pthread_mutex_t *counterMutex;
 };
 
-bool propertyCheck(int property, char *segment, size_t length) {
+/*bool propertyCheck(int property, char *segment, size_t length) {
     ;
     return true;
-}
+}*/
 
 void *threadFunc(void *p)
 {
@@ -42,13 +42,16 @@ void *threadFunc(void *p)
     } 
 
     // Property check.
-    char *segment;
-    while (false /* (segment = params->str->getNextSegment()) != NULL */) {
+    /*char *segment;
+    while (false /* (segment = params->str->getNextSegment()) != NULL ) {
         if (propertyCheck(params->property, segment, params->segLength)) {
             pthread_mutex_lock(params->counterMutex);
             params->counter++;
             pthread_mutex_lock(params->counterMutex);
         }
+    }*/
+    while(params->str->numSegmentsChecked < params->str->numSegments) {
+        checkProperty(params->str, params->property);
     }
 
 
