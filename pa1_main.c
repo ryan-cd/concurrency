@@ -3,6 +3,7 @@
 
 #include <pthread.h>
 #include <semaphore.h>
+#include <stdbool.h> // bool
 
 #include "pa1_str.h"
 
@@ -119,6 +120,9 @@ int main(int argc, char **argv)
     for (int i = 0; i < 3; ++i) {
         pthread_join(threads[i], NULL);
     }
+
+    // Finish and clean up
+    printf("Final string: %s\n", read(str));
 
     return 0;
 }
