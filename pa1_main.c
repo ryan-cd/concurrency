@@ -1,7 +1,5 @@
 #include <stdio.h> // printf
 #include <stdlib.h> // malloc, atoi, size_t
-//#include <string.h>
-#include <stdbool.h> // bool
 
 #include <pthread.h>
 #include <semaphore.h>
@@ -11,12 +9,14 @@
 struct threadParams {
     int id;
     char letter;
+    pa1_str* str;
 };
 
 void *threadFunc(void *p)
 {
     struct threadParams *params = (struct threadParams *)p;
     printf("Hello. Thread: %d\n", params->id);
+    runTask(params->str, params->letter);
 }
 
 int main(int argc, char **argv)
@@ -27,9 +27,8 @@ int main(int argc, char **argv)
     size_t numSegments; // M is the number of segments in S to generate.
     char c[3]; // c[i], i in {0, 1, 2}, are the letters to be used in the property check.
 
-    char *sharedString;
-    
-    stringTest();
+    pa1_str* str = malloc(sizeof(pa1_str));
+    init(str, 100);
     
     if (argc < 7)
     {
@@ -112,7 +111,8 @@ int main(int argc, char **argv)
     
     for (int i = 0; i < 3; ++i) { 
         params[i].id = i;
-        params[i].letter = 'a';
+        params[i].letter = 'a'+i;
+        params[i].str = str;
         pthread_create(&threads[i], NULL, threadFunc, &params[i]);
     }
 
