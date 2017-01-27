@@ -31,16 +31,15 @@ void *threadFunc(void *p)
     struct threadParams *params = (struct threadParams *)p;
 
     printf("Hello. Thread: %d\n", params->id);
-    //runTask(params->str, params->letter);
 
-    do {
+    while (params->str->index+2 < params->numSegments*params->segLength) { // |S| < M * L
         // Sleep for a random period between 100ms and 500ms.
         unsigned int microseconds = (rand() % (500000 + 1 - 100000)) + 100000; // Biased due to modulus.
         printf("Sleeping for %d usecs\n", microseconds);
         usleep(microseconds);
-        // Attempt to acquire resource S and weeeeeeerite a letter.
+        // Attempt to acquire resource S and write a letter.
         writeStr(params->str, params->letter);
-    } while (params->str->index < params->numSegments*params->segLength); // |S| < M * L
+    } 
 
     // Property check.
     char *segment;

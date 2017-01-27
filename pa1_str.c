@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 int initStr(pa1_str* self, size_t length) {
-    (self)->str = calloc(++length, sizeof(char));
+    (self)->str = calloc(length+1, sizeof(char));
     (self)->length = length;
     (self)->index = 0;
     
@@ -16,7 +16,7 @@ char* readStr(pa1_str* self) {
 }
 
 int writeStr(pa1_str* self, char newChar) {
-    if (self->index >= self->length-1)
+    if (self->index >= self->length)
         return -1;
     pthread_mutex_lock(&self->mutex);
     self->str[self->index] = newChar;
