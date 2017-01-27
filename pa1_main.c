@@ -2,6 +2,7 @@
 #include <stdlib.h> // malloc, atoi, size_t
 //#include <string.h>
 #include <stdbool.h> // bool
+#include <unistd.h> // usleep
 
 #include <pthread.h>
 #include <semaphore.h>
@@ -11,24 +12,55 @@
 struct threadParams {
     int id;
     char letter;
+    pa1_str *pa1_str;
+    size_t segLength; // L
+    size_t numSegments; // M
+    size_t property; // i
+    int counter; // Valid segment count.
+    pthread_mutex_t *counterMutex;
 };
+
+bool propertyCheck(int property, char *segment, size_t length) {
+    ;
+    return true;
+}
 
 void *threadFunc(void *p)
 {
     struct threadParams *params = (struct threadParams *)p;
-    printf("Hello. Thread: %d\n", params->id);
+
+    do {
+        printf("Hello. Thread: %d\n", params->id);
+        // Sleep for a random period between 100ms and 500ms.
+        unsigned int microseconds = (rand() % (500000 + 1 - 100000)) + 100000; // Biased due to modulus.
+        printf("Sleeping for %d usecs\n", microseconds);
+        usleep(microseconds);
+        // Attempt to acquire resource S.
+        ;
+        // Append letters.
+        ;
+    } while (false); // |S| < M * L
+
+    // Property check.
+    char *segment;
+    while (false /* (segment = params->pa1_str->getNextSegment()) != NULL */) {
+        if (propertyCheck(params->property, segment, params->segLength)) {
+            pthread_mutex_lock(params->counterMutex);
+            params->counter++;
+            pthread_mutex_lock(params->counterMutex);
+        }
+    }
+    return NULL;
 }
 
 int main(int argc, char **argv)
 {
-    size_t index; // i is the index of the property Fi which each segment of S needs to satisfy.
+    size_t property; // i is the index of the property Fi which each segment of S needs to satisfy.
     size_t numThreads; // N is the number of threads.
     size_t segLength; // L is the length of each segment of S.
     size_t numSegments; // M is the number of segments in S to generate.
     char c[3]; // c[i], i in {0, 1, 2}, are the letters to be used in the property check.
 
-    char *sharedString;
-    
     stringTest();
     
     if (argc < 7)
@@ -58,7 +90,7 @@ int main(int argc, char **argv)
             printf("Error: i must be in {0,1,2}.\n");
             errorEncountered = true;
         } else {
-            index = tempInt;
+            property = tempInt; // cast to size_t
         }
 
         tempInt = atoi(argv[2]);
@@ -105,14 +137,21 @@ int main(int argc, char **argv)
     //?? Verify inputs?
     //?? Check if numThreads between 3 and 8?
 
-
     // Threads
-    pthread_t threads[numThreads]; //?? Put on stack or heap?
+    pthread_t threads[numThreads];
     struct threadParams params[3];
-    
-    for (int i = 0; i < 3; ++i) { 
+    pthread_mutex_t counterMutex;
+    pthread_mutex_init(&counterMutex, NULL);
+
+    for (int i = 0; i < 3; ++i) {
         params[i].id = i;
         params[i].letter = 'a';
+        params[i].pa1_str = NULL;
+        params[i].segLength = segLength;
+        params[i].numSegments = numSegments;
+        params[i].property = property;
+        params[i].counter = 0;
+        params[i].counterMutex = &counterMutex;
         pthread_create(&threads[i], NULL, threadFunc, &params[i]);
     }
 

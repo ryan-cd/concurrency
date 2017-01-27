@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -std=c99 -Wall
+CFLAGS = -std=gnu99 -Wall
 LDFLAGS = 
 LDLIB = -lpthread
 EXE = pa1.x
