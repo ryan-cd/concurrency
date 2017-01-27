@@ -27,10 +27,10 @@ int write(pa1_str* self, char newChar) {
 }
 
 void runTask(pa1_str* self, char letter) {
-    printf("Thread %c starts and sees: %s\n\n", letter, read(self));
+    printf("Thread %c starts and sees: %s\n", letter, read(self));
     for (int i = 0; i < 100; i++) {
         write(self, letter);
     }
 
-    printf("Thread %c finishes and sees: %s\n\n", letter, read(self));
+    printf("Thread %c finishes and sees: %s\n", letter, read(self));
 }
