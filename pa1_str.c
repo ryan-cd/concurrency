@@ -3,11 +3,16 @@
 #include <string.h>
 #include <stdio.h>
 
-int initStr(pa1_str* self, size_t length) {
-    (self)->str = calloc(length+1, sizeof(char));
-    (self)->length = length;
-    (self)->index = 0;
-    
+int initStr(pa1_str* self, size_t numSegments, size_t segmentSize, char* c) {
+    self->str = calloc(numSegments*segmentSize+1, sizeof(char));
+    self->length = numSegments*segmentSize;
+    self->c = c;
+    self->index = 0;
+    self->numSegments = numSegments;
+    self->segmentSize = segmentSize;
+    self->numSegmentsChecked = 0;
+    self->numSegmentsValid = 0;
+
     return 0;
 }
 
@@ -33,4 +38,32 @@ void runTask(pa1_str* self, char letter) {
     }
 
     printf("Thread %c finishes and sees: %s\n", letter, read(self));
+}
+
+bool checkProperty(pa1_str* self, size_t check) {
+    switch (check) {
+        case 0: 
+            printf("Checking property 0");
+        case 1: 
+            printf("Checking property 1");
+        case 2:
+            printf("Checking property 2");
+    }
+
+    pthread_mutex_lock(&self->mutex);
+    self->numSegmentsChecked++;
+    pthread_mutex_unlock(&self->mutex);
+
+    return false;
+}
+
+size_t readIndex(struct _pa1_str* self) {
+    return 0;
+}
+
+size_t readSegmentsChecked(struct _pa1_str* self) {
+    return 0;
+}
+size_t readSegmentsValid(struct _pa1_str* self) {
+    return 0;
 }

@@ -50,6 +50,8 @@ void *threadFunc(void *p)
             pthread_mutex_lock(params->counterMutex);
         }
     }
+
+
     return NULL;
 }
 
@@ -60,9 +62,6 @@ int main(int argc, char **argv)
     size_t segLength; // L is the length of each segment of S.
     size_t numSegments; // M is the number of segments in S to generate.
     char c[3]; // c[i], i in {0, 1, 2}, are the letters to be used in the property check.
-
-    pa1_str* str = malloc(sizeof(pa1_str));
-    initStr(str, 100);
     
     if (argc < 7)
     {
@@ -137,6 +136,10 @@ int main(int argc, char **argv)
 
     //?? Verify inputs?
     //?? Check if numThreads between 3 and 8?
+
+    // Initialize string
+    pa1_str* str = malloc(sizeof(pa1_str));
+    initStr(str, numSegments, segLength, c);
 
     // Threads
     pthread_t threads[numThreads];
