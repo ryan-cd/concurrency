@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 
-int init(pa1_str* self, size_t length) {
+int initStr(pa1_str* self, size_t length) {
     (self)->str = calloc(++length, sizeof(char));
     (self)->length = length;
     (self)->index = 0;
@@ -11,11 +11,11 @@ int init(pa1_str* self, size_t length) {
     return 0;
 }
 
-char* read(pa1_str* self) {
+char* readStr(pa1_str* self) {
     return self->str;
 }
 
-int write(pa1_str* self, char newChar) {
+int writeStr(pa1_str* self, char newChar) {
     if (self->index >= self->length-1)
         return -1;
     pthread_mutex_lock(&self->mutex);

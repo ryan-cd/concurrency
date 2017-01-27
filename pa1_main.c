@@ -31,18 +31,16 @@ void *threadFunc(void *p)
     struct threadParams *params = (struct threadParams *)p;
 
     printf("Hello. Thread: %d\n", params->id);
-    runTask(params->str, params->letter);
+    //runTask(params->str, params->letter);
 
     do {
         // Sleep for a random period between 100ms and 500ms.
         unsigned int microseconds = (rand() % (500000 + 1 - 100000)) + 100000; // Biased due to modulus.
         printf("Sleeping for %d usecs\n", microseconds);
         usleep(microseconds);
-        // Attempt to acquire resource S.
-        ;
-        // Append letters.
-        ;
-    } while (false); // |S| < M * L
+        // Attempt to acquire resource S and weeeeeeerite a letter.
+        writeStr(params->str, params->letter);
+    } while (params->str->index < params->numSegments*params->segLength); // |S| < M * L
 
     // Property check.
     char *segment;
@@ -65,7 +63,7 @@ int main(int argc, char **argv)
     char c[3]; // c[i], i in {0, 1, 2}, are the letters to be used in the property check.
 
     pa1_str* str = malloc(sizeof(pa1_str));
-    init(str, 100);
+    initStr(str, 100);
     
     if (argc < 7)
     {
@@ -165,7 +163,7 @@ int main(int argc, char **argv)
     }
 
     // Finish and clean up
-    printf("Final string: %s\n", read(str));
+    printf("Final string: %s\n", readStr(str));
     free(str->str);
     free(str);
 
