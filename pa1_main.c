@@ -267,9 +267,21 @@ int main(int argc, char **argv)
         pthread_join(threads[i], NULL);
     }
 
-    // Finish and clean up
+    // Print final values
     printf("Final string: %s\n", readStr(str));
     printf("Valid segments: %d\n", str->numSegmentsValid);
+
+    //Write to file
+    FILE *file = fopen("out.txt", "w");
+    if (file == NULL)
+    {
+        printf("File could not be opened\n");
+        exit(1);
+    }
+    fprintf(file, "%s\n%d", readStr(str), str->numSegmentsValid);
+
+    //Clean up
+    fclose(file);
     free(str->str);
     free(str);
 

@@ -28,3 +28,6 @@
 *.out
 *.app
 *.x
+
+# Logs
+*.txt
