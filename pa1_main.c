@@ -73,7 +73,7 @@ void *threadFunc(void *p)
     while (params->str->index+2 < params->numSegments*params->segLength) { // |S| < M * L
         // Sleep for a random period between 100ms and 500ms.
         unsigned int microseconds = (rand() % (500000 + 1 - 100000)) + 100000; // Biased due to modulus.
-        printf("Sleeping for %d usecs\n", microseconds);
+        //printf("Sleeping for %d usecs\n", microseconds);
         usleep(microseconds);
         // Attempt to acquire resource S and write a letter.
         writeStr(params->str, params->letter);
@@ -167,6 +167,73 @@ int main(int argc, char **argv)
                 errorEncountered = true;
             }
         }
+
+        /*
+        Segment Check
+        Check that segments of length L with alphabet size N can have all strings valid
+        */
+        if (segLength < 1) {
+            errorEncountered = true;
+        }
+
+        bool validStringPossible = false;
+        if (numThreads >= 4) {
+            validStringPossible = true;
+            goto segmentCheckEnd;
+        }
+        for (int c0 = 0; c0 < segLength; c0++) {
+            for (int c1 = 0; c1 < segLength; c1++) {
+                for (int c2 = 0; c2 < segLength; c2++) {
+                    if (segLength != c0 + c1 + c2) {
+                        continue;
+                    }
+
+                    switch(property){
+                        case 0:
+                            if (((c0 + c1 == c2) && (numThreads >= 3))) 
+                            {
+                                validStringPossible = true;
+                                goto segmentCheckEnd;
+                            }
+                            break;
+                        case 1:
+                            if (((c0 + 2*c1 == c2) && (numThreads >= 3))) 
+                            {
+                                validStringPossible = true;
+                                goto segmentCheckEnd;
+                            }
+                            break;
+                        case 2:
+                            if (((c0 * c1 == c2) && (numThreads >= 3))) 
+                            {
+                                validStringPossible = true;
+                                goto segmentCheckEnd;
+                            }
+                            break;
+                        case 3:
+                            if (((c0 - c1 == c2) && (numThreads >= 3))) 
+                            {
+                                validStringPossible = true;
+                                goto segmentCheckEnd;
+                            }
+                            break;
+                        default:
+                            printf("Invalid check\n");
+                            errorEncountered = true;
+                            break;
+                    }
+                }
+            }
+        }
+        segmentCheckEnd:
+
+        if (!validStringPossible) {
+            errorEncountered = true;
+            printf("*A valid string is NOT possible*\n");
+        } else {
+            printf("*A valid string IS possible*\n");
+        }
+
 
         // Exit if any error was encountered.
         if (errorEncountered) {
