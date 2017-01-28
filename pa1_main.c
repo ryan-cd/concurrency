@@ -21,39 +21,39 @@ struct threadParams {
 
 bool checkProperty(char *segment, size_t length, char *c, size_t property) {
     // Count the occurences of each letter in c.
-    int occurances[3] = {0,0,0};
+    int occurences[3] = {0,0,0};
     for (size_t i = 0; i < length; i++) {
         for (int j = 0; j < 3; j++) {
             if (segment[i] == c[j]) {
-                occurances[j]++;
+                occurences[j]++;
             }
         }
     }
-    printf("occurances[c] = {%d, %d, %d}\n", occurances[0], occurances[1], occurances[2]); // debug
+    printf("occurences[c] = {%d, %d, %d}\n", occurences[0], occurences[1], occurences[2]); // debug
 
     bool isValid = false;
     switch (property) {
         case 0:
             printf("Checking property 0\n");
-            if (occurances[0] + occurances[1] == occurances[2]) {
+            if (occurences[0] + occurences[1] == occurences[2]) {
                 isValid = true;
             }
             break;
         case 1:
             printf("Checking property 1\n");
-            if (occurances[0] + 2 * occurances[1] == occurances[2]) {
+            if (occurences[0] + 2 * occurences[1] == occurences[2]) {
                 isValid = true;
             }
             break;
         case 2:
             printf("Checking property 2\n");
-            if (occurances[0] * occurances[1] == occurances[2]) {
+            if (occurences[0] * occurences[1] == occurences[2]) {
                 isValid = true;
             }
             break;
         case 3:
             printf("Checking property 3\n");
-            if (occurances[0] - occurances[1] == occurances[2]) {
+            if (occurences[0] - occurences[1] == occurences[2]) {
                 isValid = true;
             }
             break;
@@ -86,12 +86,11 @@ void *threadFunc(void *p)
      * Where checkProperty returns 0 if there are no segments left to check.
      */
     char *segment = NULL;
-    while((segment = getSegmentToCheck(params->str)) != NULL ) {
+    while((segment = getSegmentToCheck(params->str)) != NULL) {
         if (checkProperty(segment, params->segLength, params->str->c, params->property)) {
-            params->str->incrementValidSegments(params->str);
+            incrementValidSegments(params->str);
         }
     }
-
 
     return NULL;
 }
@@ -203,8 +202,8 @@ int main(int argc, char **argv)
     // Finish and clean up
     printf("Final string: %s\n", readStr(str));
     printf("Valid segments: %d\n", str->numSegmentsValid);
-    free(str->str);
-    free(str);
+
+    destroyStr(str);
 
     return 0;
 }

@@ -17,6 +17,14 @@ int initStr(pa1_str* self, size_t numSegments, size_t segmentSize, char* c) {
     return 0;
 }
 
+int destroyStr(pa1_str* self) {
+    free(self->str);
+    pthread_mutex_destroy(&self->mutex);
+    pthread_mutex_destroy(&self->checkMutex);
+    free(self);
+    return 0;
+}
+
 char* readStr(pa1_str* self) {
     return self->str;
 }
