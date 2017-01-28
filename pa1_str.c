@@ -40,14 +40,34 @@ void runTask(pa1_str* self, char letter) {
     printf("Thread %c finishes and sees: %s\n", letter, read(self));
 }
 
-bool checkProperty(pa1_str* self, size_t check) {
-    size_t startIndex;
-    bool returnValue = false;
+/**
+ * Threads will simultaneously poll this function until the string is fully checked.
+ */
+bool checkProperty(pa1_str* self, size_t property) {
+
+    if (self->numSegmentsChecked == self->numSegments) {
+        return false;
+    }
+
     pthread_mutex_lock(&self->mutex);
-    startIndex = self->numSegmentsChecked * self->segmentSize;
-    switch (check) {
+    size_t startIndex = self->numSegmentsChecked * self->segmentSize;
+
+    // Count the occurences of each letter in c.
+    int occurances[3] = {0,0,0};
+    for (size_t i = startIndex; i < startIndex+self->segmentSize; i++) {
+        for (int j = 0; j < 3; j++) {
+            if (self->str[i] == self->c[j]) {
+                occurances[j]++;
+            }
+        }
+    }
+    printf("occurances[c] = {%d, %d, %d}\n", occurances[0], occurances[1], occurances[2]); // debug
+
+    bool isValid = false;
+    switch (property) {
         case 0: 
             printf("Checking property 0\n");
+            /*
             bool hasA = false;
             bool hasB = false;
             bool hasC = false;
@@ -64,25 +84,40 @@ bool checkProperty(pa1_str* self, size_t check) {
                 returnValue = true;
                 self->numSegmentsValid++;
             }
-                
+            */
+            if (occurances[0] + occurances[1] == occurances[2]) {
+                isValid = true;
+            }
             break;
         case 1: 
             printf("Checking property 1\n");
+            if (occurances[0] + 2 * occurances[1] == occurances[2]) {
+                isValid = true;
+            }
             break;
         case 2:
             printf("Checking property 2\n");
+            if (occurances[0] * occurances[1] == occurances[2]) {
+                isValid = true;
+            }
             break;
         case 3:
-            printf("Checking property 2\n");
+            printf("Checking property 3\n");
+            if (occurances[0] - occurances[1] == occurances[2]) {
+                isValid = true;
+            }
             break;
         default:
             printf("Error: Invalid property");
+            break;
     }
 
+    if (isValid) {
+        self->numSegmentsValid++;
+    }
     self->numSegmentsChecked++;
     pthread_mutex_unlock(&self->mutex);
-
-    return returnValue;
+    return true;
 }
 
 size_t readIndex(struct _pa1_str* self) {

@@ -34,12 +34,15 @@ void *threadFunc(void *p)
         usleep(microseconds);
         // Attempt to acquire resource S and write a letter.
         writeStr(params->str, params->letter);
-    } 
-
-    while(params->str->numSegmentsChecked < params->str->numSegments) {
-        checkProperty(params->str, params->property);
     }
 
+    // while(params->str->numSegmentsChecked < params->str->numSegments) {
+    //     checkProperty(params->str, params->property);
+    // }
+    /* Alternatively way:
+     * Where checkProperty returns 0 if there are no segments left to check.
+     */
+    while(checkProperty(params->str, params->property)) {}
 
     return NULL;
 }
@@ -132,13 +135,12 @@ int main(int argc, char **argv)
 
     // Threads
     pthread_t threads[numThreads];
-    struct threadParams params[3];
+    struct threadParams params[numThreads];
     pthread_mutex_t counterMutex;
     pthread_mutex_init(&counterMutex, NULL);
 
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < numThreads; ++i) {
         params[i].id = i;
-
         params[i].letter = 'a'+i;
         params[i].str = str;
         params[i].segLength = segLength;
@@ -149,7 +151,7 @@ int main(int argc, char **argv)
         pthread_create(&threads[i], NULL, threadFunc, &params[i]);
     }
 
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < numThreads; ++i) {
         pthread_join(threads[i], NULL);
     }
 
