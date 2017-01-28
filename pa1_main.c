@@ -17,9 +17,52 @@ struct threadParams {
     size_t segLength; // L
     size_t numSegments; // M
     size_t property; // i
-    int counter; // Valid segment count.
-    pthread_mutex_t *counterMutex;
 };
+
+bool checkProperty(char *segment, size_t length, char *c, size_t property) {
+    // Count the occurences of each letter in c.
+    int occurances[3] = {0,0,0};
+    for (size_t i = 0; i < length; i++) {
+        for (int j = 0; j < 3; j++) {
+            if (segment[i] == c[j]) {
+                occurances[j]++;
+            }
+        }
+    }
+    printf("occurances[c] = {%d, %d, %d}\n", occurances[0], occurances[1], occurances[2]); // debug
+
+    bool isValid = false;
+    switch (property) {
+        case 0:
+            printf("Checking property 0\n");
+            if (occurances[0] + occurances[1] == occurances[2]) {
+                isValid = true;
+            }
+            break;
+        case 1:
+            printf("Checking property 1\n");
+            if (occurances[0] + 2 * occurances[1] == occurances[2]) {
+                isValid = true;
+            }
+            break;
+        case 2:
+            printf("Checking property 2\n");
+            if (occurances[0] * occurances[1] == occurances[2]) {
+                isValid = true;
+            }
+            break;
+        case 3:
+            printf("Checking property 3\n");
+            if (occurances[0] - occurances[1] == occurances[2]) {
+                isValid = true;
+            }
+            break;
+        default:
+            printf("Error: Invalid property");
+            break;
+    }
+    return isValid;
+}
 
 void *threadFunc(void *p)
 {
@@ -42,7 +85,13 @@ void *threadFunc(void *p)
     /* Alternatively way:
      * Where checkProperty returns 0 if there are no segments left to check.
      */
-    while(checkProperty(params->str, params->property)) {}
+    char *segment = NULL;
+    while((segment = getSegmentToCheck(params->str)) != NULL ) {
+        if (checkProperty(segment, params->segLength, params->str->c, params->property)) {
+            params->str->incrementValidSegments(params->str);
+        }
+    }
+
 
     return NULL;
 }
@@ -136,8 +185,6 @@ int main(int argc, char **argv)
     // Threads
     pthread_t threads[numThreads];
     struct threadParams params[numThreads];
-    pthread_mutex_t counterMutex;
-    pthread_mutex_init(&counterMutex, NULL);
 
     for (int i = 0; i < numThreads; ++i) {
         params[i].id = i;
@@ -146,8 +193,6 @@ int main(int argc, char **argv)
         params[i].segLength = segLength;
         params[i].numSegments = numSegments;
         params[i].property = property;
-        params[i].counter = 0;
-        params[i].counterMutex = &counterMutex;
         pthread_create(&threads[i], NULL, threadFunc, &params[i]);
     }
 
