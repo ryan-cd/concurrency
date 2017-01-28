@@ -41,9 +41,30 @@ void runTask(pa1_str* self, char letter) {
 }
 
 bool checkProperty(pa1_str* self, size_t check) {
+    size_t startIndex;
+    bool returnValue = false;
+    pthread_mutex_lock(&self->mutex);
+    startIndex = self->numSegmentsChecked * self->segmentSize;
     switch (check) {
         case 0: 
             printf("Checking property 0\n");
+            bool hasA = false;
+            bool hasB = false;
+            bool hasC = false;
+            printf("Checking from %d to %d\n", startIndex, startIndex+self->segmentSize);
+            for (int i = startIndex; i < startIndex+self->segmentSize; i++) {
+                if(self->str[i] == 'a')
+                    hasA = true;
+                if(self->str[i] == 'b')
+                    hasB = true;
+                if(self->str[i] == 'c')
+                    hasC = true;
+            }
+            if(hasA && hasB && hasC) {
+                returnValue = true;
+                self->numSegmentsValid++;
+            }
+                
             break;
         case 1: 
             printf("Checking property 1\n");
@@ -58,11 +79,10 @@ bool checkProperty(pa1_str* self, size_t check) {
             printf("Error: Invalid property");
     }
 
-    pthread_mutex_lock(&self->mutex);
     self->numSegmentsChecked++;
     pthread_mutex_unlock(&self->mutex);
 
-    return false;
+    return returnValue;
 }
 
 size_t readIndex(struct _pa1_str* self) {
