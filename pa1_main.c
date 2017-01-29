@@ -152,7 +152,7 @@ void *threadFunc(void *p)
 
     printf("Hello. Thread: %d\n", params->id);
 
-    while (params->str->index+2 < params->numSegments*params->segLength) { // |S| < M * L
+    while (params->str->index < params->numSegments*params->segLength) { // |S| < M * L
         // Sleep for a random period between 100ms and 500ms.
         unsigned int microseconds = (rand() % (500000 + 1 - 100000)) + 100000; // Biased due to modulus.
         //printf("Sleeping for %d usecs\n", microseconds);
@@ -193,11 +193,11 @@ int main(int argc, char **argv)
         "Missing arguments.\n\n"
         "Usage: %s i N L M c_0 c_1 c_2\n\n"
         "Parameters:\n"
-        "\t i:   the index of the property Fi which each segment of S needs to satisfy.\n"
-        "\t N:   the number of threads.\n"
-        "\t L:   the length of each segment of S.\n"
-        "\t M:   the number of segments in S to generate.\n"
-        "\t c_i: the letters to be used in the property check.\n\n"
+        "\t i:   (0<=i<=3) The index of the property Fi which each segment of S needs to satisfy.\n"
+        "\t N:   (3<=N<=8) The number of threads.\n"
+        "\t L:   (0 < L)   The length of each segment of S.\n"
+        "\t M:   (0 < M)   The number of segments in S to generate.\n"
+        "\t c_i: (0<=i<=2) The letters to be used in the property check.\n\n"
         "Example: ./pa1.x 0 3 6 3 b c a\n"
         , argv[0]);
         exit(1);
@@ -210,8 +210,8 @@ int main(int argc, char **argv)
         int tempInt;
 
         tempInt = atoi(argv[1]);
-        if (tempInt < 0 || tempInt > 2) {
-            printf("Error: i must be in {0,1,2}.\n");
+        if (tempInt < 0 || tempInt > 3) {
+            printf("Error: i must be in {0,1,2,3}.\n");
             errorEncountered = true;
         } else {
             property = tempInt; // cast to size_t
