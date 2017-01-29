@@ -171,7 +171,7 @@ void *threadFunc(void *p)
 
     char *segment = NULL;
     while((segment = getSegmentToCheck(params->str)) != NULL) {
-        if (checkProperty(segment, params->segLength, params->str->c, params->property)) {
+        if (checkProperty(segment, params->segLength, params->c, params->property)) {
             incrementValidSegments(params->str);
         }
     }
@@ -324,7 +324,7 @@ int main(int argc, char **argv)
 
     // Initialize string
     pa1_str* str = malloc(sizeof(pa1_str));
-    initStr(str, numSegments, segLength, c);
+    initStr(str, numSegments, segLength);
 
     // Threads
     pthread_t threads[numThreads];

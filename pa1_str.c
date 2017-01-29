@@ -3,12 +3,11 @@
 #include <string.h>
 #include <stdio.h>
 
-int initStr(pa1_str* self, size_t numSegments, size_t segmentSize, char* c) {
+int initStr(pa1_str* self, size_t numSegments, size_t segmentSize) {
     self->str = calloc(numSegments*segmentSize+1, sizeof(char));
     self->index = 0;
     self->segmentIndex = 0;
     self->length = numSegments*segmentSize;
-    self->c = c;
     self->numSegments = numSegments;
     self->segmentSize = segmentSize;
     self->numSegmentsChecked = 0;
