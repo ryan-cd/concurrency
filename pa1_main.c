@@ -258,9 +258,9 @@ int main(int argc, char **argv)
             validStringPossible = true;
             goto segmentCheckEnd;
         }
-        for (int c0 = 0; c0 < segLength; c0++) {
-            for (int c1 = 0; c1 < segLength; c1++) {
-                for (int c2 = 0; c2 < segLength; c2++) {
+        for (int c0 = 0; c0 <= segLength; c0++) {
+            for (int c1 = 0; c1 <= segLength; c1++) {
+                for (int c2 = 0; c2 <= segLength; c2++) {
                     if (segLength != c0 + c1 + c2) {
                         continue;
                     }
