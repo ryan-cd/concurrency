@@ -8,6 +8,7 @@
 typedef struct _pa1_str {
     char* str;
     size_t index;
+    size_t segmentIndex; // index of the beginning of the current segment
     size_t length;
     char* c;
     pthread_mutex_t mutex;

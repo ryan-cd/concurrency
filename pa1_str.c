@@ -5,9 +5,10 @@
 
 int initStr(pa1_str* self, size_t numSegments, size_t segmentSize, char* c) {
     self->str = calloc(numSegments*segmentSize+1, sizeof(char));
+    self->index = 0;
+    self->segmentIndex = 0;
     self->length = numSegments*segmentSize;
     self->c = c;
-    self->index = 0;
     self->numSegments = numSegments;
     self->segmentSize = segmentSize;
     self->numSegmentsChecked = 0;
@@ -35,6 +36,7 @@ int writeStr(pa1_str* self, char newChar) {
     pthread_mutex_lock(&self->mutex);
     self->str[self->index] = newChar;
     self->index = self->index + 1;
+    self->segmentIndex = (self->index/self->segmentSize)*self->segmentSize;
     pthread_mutex_unlock(&self->mutex);
 
     return 0;

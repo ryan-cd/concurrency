@@ -36,7 +36,7 @@ bool canWrite(char letter, char* segment, size_t segLength, char c[3], size_t pr
     }
 
     if ((letter != c[0]) && (letter != c[1]) && (letter != c[2])) {
-        cx += 1;
+        cx++;
     }
 
     for (int i = 0; i < segLength; i++) {
@@ -57,7 +57,7 @@ bool canWrite(char letter, char* segment, size_t segLength, char c[3], size_t pr
             cx++;
         }
     }
-    
+
     for (int c0 = c0Initial; c0 < segLength - cx; c0++) {
         for (int c1 = c1Initial; c1 < segLength - cx; c1++) {
             for (int c2 = c2Initial; c2 < segLength - cx; c2++) {
@@ -67,25 +67,25 @@ bool canWrite(char letter, char* segment, size_t segLength, char c[3], size_t pr
 
                 switch(property){
                     case 0:
-                        if (c0 + c1 == c2) 
+                        if (c0 + c1 == c2)
                         {
                             return true;
                         }
                         break;
                     case 1:
-                        if (c0 + 2*c1 == c2) 
+                        if (c0 + 2*c1 == c2)
                         {
                             return true;
                         }
                         break;
                     case 2:
-                        if (c0 * c1 == c2) 
+                        if (c0 * c1 == c2)
                         {
                             return true;
                         }
                         break;
                     case 3:
-                        if (c0 - c1 == c2) 
+                        if (c0 - c1 == c2)
                         {
                             return false;
                         }
@@ -97,7 +97,7 @@ bool canWrite(char letter, char* segment, size_t segLength, char c[3], size_t pr
             }
         }
     }
-    
+
     return false;
 }
 
@@ -158,7 +158,9 @@ void *threadFunc(void *p)
         //printf("Sleeping for %d usecs\n", microseconds);
         usleep(microseconds);
         // Attempt to acquire resource S and write a letter.
-        writeStr(params->str, params->letter);
+        if (canWrite(params->letter, &params->str->str[params->str->segmentIndex], params->segLength, params->c, params->property)) {
+            writeStr(params->str, params->letter);
+        }
     }
 
     // while(params->str->numSegmentsChecked < params->str->numSegments) {
