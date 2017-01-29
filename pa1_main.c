@@ -38,8 +38,7 @@ bool canWrite(char letter, char* segment, size_t segLength, char c[3], size_t pr
     size_t c0Initial = 0;
     size_t c1Initial = 0;
     size_t c2Initial = 0;
-    size_t cx = 0;
-    bool cLetter = true;
+    size_t cxInitial = 0;
 
     if (letter == c[0]) {
         c0Initial++;
@@ -50,8 +49,7 @@ bool canWrite(char letter, char* segment, size_t segLength, char c[3], size_t pr
     }
 
     if ((letter != c[0]) && (letter != c[1]) && (letter != c[2])) {
-        cx++;
-        cLetter = false;
+        cxInitial++;
     }
 
     for (int i = 0; i < segLength; i++) {
@@ -69,52 +67,50 @@ bool canWrite(char letter, char* segment, size_t segLength, char c[3], size_t pr
             break;
         //There is a letter not in c[3]
         } else {
-            cx++;
+            cxInitial++;
         }
     }
 
-    for (int c0 = c0Initial; c0 < segLength - cx; c0++) {
-        for (int c1 = c1Initial; c1 < segLength - cx; c1++) {
-            for (int c2 = c2Initial; c2 < segLength - cx; c2++) {
-                if (segLength != c0 + c1 + c2 + cx) {
-                    continue;
-                }                
+    for (int c0 = c0Initial; c0 <= segLength; c0++) {
+        for (int c1 = c1Initial; c1 <= segLength; c1++) {
+            for (int c2 = c2Initial; c2 <= segLength; c2++) {
+                for (int cx = cxInitial; cx <= segLength; cx++) {
+                    if (segLength != c0 + c1 + c2 + cx) {
+                        continue;
+                    }                
 
-                switch(property){
-                    case 0:
-                        if (c0 + c1 == c2)
-                        {
-                            return true;
-                        }
-                        break;
-                    case 1:
-                        if (c0 + 2*c1 == c2)
-                        {
-                            return true;
-                        }
-                        break;
-                    case 2:
-                        if (c0 * c1 == c2)
-                        {
-                            return true;
-                        }
-                        break;
-                    case 3:
-                        if (c0 - c1 == c2)
-                        {
-                            return true;
-                        }
-                        break;
-                    default:
-                        printf("Invalid check\n");
-                        return false;
+                    switch(property){
+                        case 0:
+                            if (c0 + c1 == c2)
+                            {
+                                return true;
+                            }
+                            break;
+                        case 1:
+                            if (c0 + 2*c1 == c2)
+                            {
+                                return true;
+                            }
+                            break;
+                        case 2:
+                            if (c0 * c1 == c2)
+                            {
+                                return true;
+                            }
+                            break;
+                        case 3:
+                            if (c0 - c1 == c2)
+                            {
+                                return true;
+                            }
+                            break;
+                        default:
+                            printf("Invalid check\n");
+                            return false;
+                    }
                 }
             }
         }
-    }
-
-    if (!cLetter && (c0Initial == 0) && (c1Initial == 0) && (c2Initial == 0)) {
-        return true;
     }
 
     return false;
@@ -350,7 +346,16 @@ int main(int argc, char **argv)
     }
 
     // Print final values
-    printf("Final string: %s\n", readStr(str));
+    printf("Final string (formatted): ");
+    for (int i = 0; i < str->length; i++) {
+        
+        if (i%segLength == 0) {
+            printf(" ");
+        }
+        printf("%c", str->str[i]);
+    }
+    printf("\n");
+    printf("Final string (unformatted): %s\n", readStr(str));
     printf("Valid segments: %d\n", str->numSegmentsValid);
 
     //Write to file
