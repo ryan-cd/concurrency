@@ -348,7 +348,6 @@ int main(int argc, char **argv)
     // Print final values
     printf("Final string (formatted): ");
     for (int i = 0; i < str->length; i++) {
-        
         if (i%segLength == 0) {
             printf(" ");
         }

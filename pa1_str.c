@@ -42,15 +42,6 @@ int writeStr(pa1_str* self, char newChar) {
     return 0;
 }
 
-void runTask(pa1_str* self, char letter) {
-    printf("Thread %c starts and sees: %s\n", letter, read(self));
-    for (int i = 0; i < 100; i++) {
-        write(self, letter);
-    }
-
-    printf("Thread %c finishes and sees: %s\n", letter, read(self));
-}
-
 /**
  * Threads will simultaneously poll this function until the string is fully checked.
  */
@@ -73,15 +64,4 @@ void incrementValidSegments(pa1_str* self) {
     pthread_mutex_lock(&self->checkMutex);
     self->numSegmentsValid++;
     pthread_mutex_unlock(&self->checkMutex);
-}
-
-size_t readIndex(struct _pa1_str* self) {
-    return 0;
-}
-
-size_t readSegmentsChecked(struct _pa1_str* self) {
-    return 0;
-}
-size_t readSegmentsValid(struct _pa1_str* self) {
-    return 0;
 }
