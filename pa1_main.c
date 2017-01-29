@@ -35,11 +35,11 @@ void printInstructions() {
 }
 
 bool canWrite(char letter, char* segment, size_t segLength, char c[3], size_t property) {
-    bool validStringPossible = false;
     size_t c0Initial = 0;
     size_t c1Initial = 0;
     size_t c2Initial = 0;
     size_t cx = 0;
+    bool cLetter = true;
 
     if (letter == c[0]) {
         c0Initial++;
@@ -51,6 +51,7 @@ bool canWrite(char letter, char* segment, size_t segLength, char c[3], size_t pr
 
     if ((letter != c[0]) && (letter != c[1]) && (letter != c[2])) {
         cx++;
+        cLetter = false;
     }
 
     for (int i = 0; i < segLength; i++) {
@@ -75,9 +76,9 @@ bool canWrite(char letter, char* segment, size_t segLength, char c[3], size_t pr
     for (int c0 = c0Initial; c0 < segLength - cx; c0++) {
         for (int c1 = c1Initial; c1 < segLength - cx; c1++) {
             for (int c2 = c2Initial; c2 < segLength - cx; c2++) {
-                if (segLength - cx != c0 + c1 + c2) {
+                if (segLength != c0 + c1 + c2 + cx) {
                     continue;
-                }
+                }                
 
                 switch(property){
                     case 0:
@@ -110,6 +111,10 @@ bool canWrite(char letter, char* segment, size_t segLength, char c[3], size_t pr
                 }
             }
         }
+    }
+
+    if (!cLetter && (c0Initial == 0) && (c1Initial == 0) && (c2Initial == 0)) {
+        return true;
     }
 
     return false;
@@ -158,7 +163,6 @@ bool checkProperty(char *segment, size_t length, char *c, size_t property) {
 void *threadFunc(void *p)
 {
     struct threadParams *params = (struct threadParams *)p;
-
     while (params->str->index < params->numSegments*params->segLength) { // |S| < M * L
         // Sleep for a random period between 100ms and 500ms.
         unsigned int microseconds = (rand() % (500000 + 1 - 100000)) + 100000; // Biased due to modulus.
