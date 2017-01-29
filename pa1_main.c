@@ -13,11 +13,93 @@
 struct threadParams {
     int id;
     char letter;
+    char* c;
     pa1_str *str;
     size_t segLength; // L
     size_t numSegments; // M
     size_t property; // i
 };
+
+bool canWrite(char letter, char* segment, size_t segLength, char c[3], size_t property) {
+    bool validStringPossible = false;
+    size_t c0Initial = 0;
+    size_t c1Initial = 0;
+    size_t c2Initial = 0;
+    size_t cx = 0;
+
+    if (letter == c[0]) {
+        c0Initial++;
+    } else if (letter == c[1]) {
+        c1Initial++;
+    } else if (letter == c[2]) {
+        c2Initial++;
+    }
+
+    if ((letter != c[0]) && (letter != c[1]) && (letter != c[2])) {
+        cx += 1;
+    }
+
+    for (int i = 0; i < segLength; i++) {
+        if (c[0] == segment[i]) {
+            c0Initial++;
+        }
+        else if (c[1] == segment[i]) {
+            c1Initial++;
+        }
+        else if (c[2] == segment[i]) {
+            c2Initial++;
+        }
+        // No more characters in this segment
+        else if (segment[i] == 0) {
+            break;
+        //There is a letter not in c[3]
+        } else {
+            cx++;
+        }
+    }
+    
+    for (int c0 = c0Initial; c0 < segLength - cx; c0++) {
+        for (int c1 = c1Initial; c1 < segLength - cx; c1++) {
+            for (int c2 = c2Initial; c2 < segLength - cx; c2++) {
+                if (segLength - cx != c0 + c1 + c2) {
+                    continue;
+                }
+
+                switch(property){
+                    case 0:
+                        if (c0 + c1 == c2) 
+                        {
+                            return true;
+                        }
+                        break;
+                    case 1:
+                        if (c0 + 2*c1 == c2) 
+                        {
+                            return true;
+                        }
+                        break;
+                    case 2:
+                        if (c0 * c1 == c2) 
+                        {
+                            return true;
+                        }
+                        break;
+                    case 3:
+                        if (c0 - c1 == c2) 
+                        {
+                            return false;
+                        }
+                        break;
+                    default:
+                        printf("Invalid check\n");
+                        return false;
+                }
+            }
+        }
+    }
+    
+    return false;
+}
 
 bool checkProperty(char *segment, size_t length, char *c, size_t property) {
     // Count the occurences of each letter in c.
@@ -255,6 +337,7 @@ int main(int argc, char **argv)
     for (int i = 0; i < numThreads; ++i) {
         params[i].id = i;
         params[i].letter = 'a'+i;
+        params[i].c = c;
         params[i].str = str;
         params[i].segLength = segLength;
         params[i].numSegments = numSegments;
