@@ -3,7 +3,7 @@ CFLAGS = -std=gnu99 -Wall
 LDFLAGS = 
 LDLIB = -lpthread
 EXE = pa1.x
-OBJ = pa1_main.o pa1_str.o
+OBJ = pa1.o pa1_str.o
 
 $(EXE): $(OBJ)
 	$(CC) $(LDFLAGS) $^ $(LDLIB) -o $@
