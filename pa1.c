@@ -362,7 +362,7 @@ int main(int argc, char **argv)
         printf("File could not be opened\n");
         exit(1);
     }
-    fprintf(file, "%s\n%ld", readStr(str), str->numSegmentsValid);
+    fprintf(file, "%s\n%ld\n", readStr(str), str->numSegmentsValid);
 
     // Clean up
     fclose(file);
