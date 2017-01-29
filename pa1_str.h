@@ -1,3 +1,7 @@
+/**
+ *  Ryan Davis - davisr3
+ *  Don Pham - phamd
+ */
 #ifndef __PA1_STR__
 #define __PA1_STR__
 

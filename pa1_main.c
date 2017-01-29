@@ -1,3 +1,7 @@
+/**
+ *  Ryan Davis - davisr3
+ *  Don Pham - phamd
+ */
 #include <stdio.h> // printf
 #include <stdlib.h> // malloc, atoi, size_t
 #include <stdbool.h> // bool
@@ -178,10 +182,10 @@ void *threadFunc(void *p)
 
 int main(int argc, char **argv)
 {
-    size_t property; // i is the index of the property Fi which each segment of S needs to satisfy.
-    size_t numThreads; // N is the number of threads.
-    size_t segLength; // L is the length of each segment of S.
-    size_t numSegments; // M is the number of segments in S to generate.
+    size_t property = 0; // i is the index of the property Fi which each segment of S needs to satisfy.
+    size_t numThreads = 0; // N is the number of threads.
+    size_t segLength = 0; // L is the length of each segment of S.
+    size_t numSegments = 0; // M is the number of segments in S to generate.
     char c[3]; // c[i], i in {0, 1, 2}, are the letters to be used in the property check.
     
     if (argc < 7)

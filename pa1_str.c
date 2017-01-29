@@ -1,3 +1,7 @@
+/**
+ *  Ryan Davis - davisr3
+ *  Don Pham - phamd
+ */
 #include "pa1_str.h"
 #include <stdlib.h>
 #include <string.h>
