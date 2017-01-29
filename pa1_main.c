@@ -20,6 +20,20 @@ struct threadParams {
     size_t property; // i
 };
 
+void printInstructions() {
+    printf(
+        "Invalid arguments.\n\n"
+        "Usage: ./pa1.x i N L M c_0 c_1 c_2\n\n"
+        "Parameters:\n"
+        "\t i:   (0<=i<=3) The index of the property Fi which each segment of S needs to satisfy.\n"
+        "\t N:   (3<=N<=8) The number of threads.\n"
+        "\t L:   (0 < L)   The length of each segment of S.\n"
+        "\t M:   (0 < M)   The number of segments in S to generate.\n"
+        "\t c_i: (0<=i<=2) The letters to be used in the property check.\n\n"
+        "\t Note that M/N must have no remainder\n"
+        "Example: ./pa1.x 0 3 6 3 b c a\n");
+}
+
 bool canWrite(char letter, char* segment, size_t segLength, char c[3], size_t property) {
     bool validStringPossible = false;
     size_t c0Initial = 0;
@@ -111,30 +125,25 @@ bool checkProperty(char *segment, size_t length, char *c, size_t property) {
             }
         }
     }
-    printf("occurences[c] = {%d, %d, %d}\n", occurences[0], occurences[1], occurences[2]); // debug
 
     bool isValid = false;
     switch (property) {
         case 0:
-            printf("Checking property 0\n");
             if (occurences[0] + occurences[1] == occurences[2]) {
                 isValid = true;
             }
             break;
         case 1:
-            printf("Checking property 1\n");
             if (occurences[0] + 2 * occurences[1] == occurences[2]) {
                 isValid = true;
             }
             break;
         case 2:
-            printf("Checking property 2\n");
             if (occurences[0] * occurences[1] == occurences[2]) {
                 isValid = true;
             }
             break;
         case 3:
-            printf("Checking property 3\n");
             if (occurences[0] - occurences[1] == occurences[2]) {
                 isValid = true;
             }
@@ -150,12 +159,9 @@ void *threadFunc(void *p)
 {
     struct threadParams *params = (struct threadParams *)p;
 
-    printf("Hello. Thread: %d\n", params->id);
-
     while (params->str->index < params->numSegments*params->segLength) { // |S| < M * L
         // Sleep for a random period between 100ms and 500ms.
         unsigned int microseconds = (rand() % (500000 + 1 - 100000)) + 100000; // Biased due to modulus.
-        //printf("Sleeping for %d usecs\n", microseconds);
         usleep(microseconds);
         // Attempt to acquire resource S and write a letter.
         if (canWrite(params->letter, &params->str->str[params->str->segmentIndex], params->segLength, params->c, params->property)) {
@@ -163,12 +169,6 @@ void *threadFunc(void *p)
         }
     }
 
-    // while(params->str->numSegmentsChecked < params->str->numSegments) {
-    //     checkProperty(params->str, params->property);
-    // }
-    /* Alternatively way:
-     * Where checkProperty returns 0 if there are no segments left to check.
-     */
     char *segment = NULL;
     while((segment = getSegmentToCheck(params->str)) != NULL) {
         if (checkProperty(segment, params->segLength, params->str->c, params->property)) {
@@ -189,17 +189,7 @@ int main(int argc, char **argv)
     
     if (argc < 7)
     {
-        printf(
-        "Missing arguments.\n\n"
-        "Usage: %s i N L M c_0 c_1 c_2\n\n"
-        "Parameters:\n"
-        "\t i:   (0<=i<=3) The index of the property Fi which each segment of S needs to satisfy.\n"
-        "\t N:   (3<=N<=8) The number of threads.\n"
-        "\t L:   (0 < L)   The length of each segment of S.\n"
-        "\t M:   (0 < M)   The number of segments in S to generate.\n"
-        "\t c_i: (0<=i<=2) The letters to be used in the property check.\n\n"
-        "Example: ./pa1.x 0 3 6 3 b c a\n"
-        , argv[0]);
+        printInstructions();
         exit(1);
     }
     else
@@ -250,6 +240,10 @@ int main(int argc, char **argv)
                 errorEncountered = true;
             }
         }
+
+        // Check M/N has no remainder
+        if (numSegments % numThreads != 0)
+            errorEncountered = true;
 
         /*
         Segment Check
@@ -320,7 +314,7 @@ int main(int argc, char **argv)
 
         // Exit if any error was encountered.
         if (errorEncountered) {
-            printf("Exiting.\n");
+            printInstructions();
             exit(1);
         }
     }
