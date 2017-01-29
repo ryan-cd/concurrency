@@ -87,7 +87,7 @@ bool canWrite(char letter, char* segment, size_t segLength, char c[3], size_t pr
                     case 3:
                         if (c0 - c1 == c2)
                         {
-                            return false;
+                            return true;
                         }
                         break;
                     default:
