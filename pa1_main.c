@@ -1,12 +1,10 @@
 #include <stdio.h> // printf
 #include <stdlib.h> // malloc, atoi, size_t
-//#include <string.h>
 #include <stdbool.h> // bool
 #include <unistd.h> // usleep
 
 #include <pthread.h>
 #include <semaphore.h>
-#include <stdbool.h> // bool
 
 #include "pa1_str.h"
 
@@ -163,7 +161,6 @@ void *threadFunc(void *p)
         // Sleep for a random period between 100ms and 500ms.
         unsigned int microseconds = (rand() % (500000 + 1 - 100000)) + 100000; // Biased due to modulus.
         usleep(microseconds);
-        // Attempt to acquire resource S and write a letter.
         if (canWrite(params->letter, &params->str->str[params->str->segmentIndex], params->segLength, params->c, params->property)) {
             writeStr(params->str, params->letter);
         }
@@ -319,9 +316,6 @@ int main(int argc, char **argv)
         }
     }
 
-    //?? Verify inputs?
-    //?? Check if numThreads between 3 and 8?
-
     // Initialize string
     pa1_str* str = malloc(sizeof(pa1_str));
     initStr(str, numSegments, segLength);
@@ -355,18 +349,18 @@ int main(int argc, char **argv)
     }
     printf("\n");
     printf("Final string (unformatted): %s\n", readStr(str));
-    printf("Valid segments: %d\n", str->numSegmentsValid);
+    printf("Valid segments: %ld\n", str->numSegmentsValid);
 
-    //Write to file
+    // Write to file
     FILE *file = fopen("out.txt", "w");
     if (file == NULL)
     {
         printf("File could not be opened\n");
         exit(1);
     }
-    fprintf(file, "%s\n%d", readStr(str), str->numSegmentsValid);
+    fprintf(file, "%s\n%ld", readStr(str), str->numSegmentsValid);
 
-    //Clean up
+    // Clean up
     fclose(file);
     destroyStr(str);
 
