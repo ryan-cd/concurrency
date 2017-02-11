@@ -2,12 +2,12 @@
  *  Ryan Davis - davisr3
  *  Don Pham - phamd
  */
-#include "pa2_str.h"
+#include "pa_str.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 
-int initStr(pa1_str* self, size_t numSegments, size_t segmentSize) {
+void initStr(pa_str* self, size_t numSegments, size_t segmentSize) {
     self->str = calloc(numSegments*segmentSize+1, sizeof(char));
     self->index = 0;
     self->segmentIndex = 0;
@@ -16,40 +16,39 @@ int initStr(pa1_str* self, size_t numSegments, size_t segmentSize) {
     self->segmentSize = segmentSize;
     self->numSegmentsChecked = 0;
     self->numSegmentsValid = 0;
-
-    return 0;
 }
 
-int destroyStr(pa1_str* self) {
+void destroyStr(pa_str* self) {
     free(self->str);
     free(self);
-    return 0;
 }
 
-char* readStr(pa1_str* self) {
+/**
+ * Returns the pointer to the internal char array.
+ */
+char* readStr(pa_str* self) {
     return self->str;
 }
 
-int writeStr(pa1_str* self, char newChar, char enforcementChars[3], size_t enforcementProperty) {
-    if (self->index >= self->length)
-        return -1;
-
+void writeStr(pa_str* self, char newChar, char enforcementChars[3], size_t enforcementProperty) {
     #pragma omp critical
     {
-        if (canWrite(newChar, self->segmentIndex, self->segmentSize, enforcementChars, enforcementProperty)) {
-            self->str[self->index] = newChar;
-            self->index = self->index + 1;
-            self->segmentIndex = (self->index/self->segmentSize)*self->segmentSize;
+        // If there is space to write
+        if (self->index < self->length) {
+            // If the letter can be added with respect to the enforcement rules
+            if (canWrite(newChar, &self->str[self->segmentIndex], self->segmentSize, enforcementChars, enforcementProperty)) {
+                self->str[self->index] = newChar;
+                self->index = self->index + 1;
+                self->segmentIndex = (self->index/self->segmentSize)*self->segmentSize;
+            }
         }
     }
-
-    return 0;
 }
 
 /**
  * Threads will simultaneously poll this function until the string is fully checked.
  */
-char* getSegmentToCheck(pa1_str* self) {
+char* getSegmentToCheck(pa_str* self) {
     char *segment;
 
     #pragma omp critical
@@ -64,14 +63,13 @@ char* getSegmentToCheck(pa1_str* self) {
     return segment;
 }
 
-void incrementValidSegments(pa1_str* self) {
-    #pragma omp critical
-    {
-        self->numSegmentsValid++;
-    }
+void incrementValidSegments(pa_str* self) {
+    #pragma omp atomic
+    self->numSegmentsValid++;
 }
 
 /**
+ * Returns whether the letter can be added with respect to the enforcement property.
  * Used within the critical section of writeStr.
  */
 bool canWrite(char letter, char* segment, size_t segLength, char c[3], size_t property) {

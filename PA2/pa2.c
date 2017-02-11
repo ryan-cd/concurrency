@@ -6,33 +6,29 @@
 #include <stdlib.h> // malloc, atoi, size_t
 #include <stdbool.h> // bool
 #include <unistd.h> // usleep
-
-#include <omp.h>
-
-#include "pa2_str.h"
+#include <omp.h> // openmp
+#include "pa_str.h" // pa_str
 
 struct threadParams {
     int id;
     char letter;
     char* c;
-    pa1_str *str;
+    pa_str *str;
     size_t segLength; // L
     size_t numSegments; // M
     size_t property; // i
 };
 
 void printInstructions() {
-    printf(
-        "Invalid arguments.\n\n"
-        "Usage: ./pa1.x i N L M c_0 c_1 c_2\n\n"
+    fprintf(stderr,
+        "\nUsage: ./pa2.x i N L M c_0 c_1 c_2\n"
         "Parameters:\n"
         "\t i:   (0<=i<=3) The index of the property Fi which each segment of S needs to satisfy.\n"
         "\t N:   (3<=N<=8) The number of threads.\n"
         "\t L:   (0 < L)   The length of each segment of S.\n"
         "\t M:   (0 < M)   The number of segments in S to generate.\n"
-        "\t c_i: (0<=i<=2) The letters to be used in the property check.\n\n"
-        "\t Note that M/N must have no remainder\n"
-        "Example: ./pa1.x 0 3 6 3 b c a\n");
+        "\t c_i: (0<=i<=2) The letters to be used in the property check.\n"
+        "Example: ./pa2.x 0 3 6 3 b c a\n");
 }
 
 bool checkProperty(char *segment, size_t length, char *c, size_t property) {
@@ -45,7 +41,6 @@ bool checkProperty(char *segment, size_t length, char *c, size_t property) {
             }
         }
     }
-
     bool isValid = false;
     switch (property) {
         case 0:
@@ -116,39 +111,29 @@ int main(int argc, char **argv)
     {
         // The user will see all of their mistakes before the program exits.
         bool errorEncountered = false;
-        // Used to error check first before casting to unsigned int.
-        int tempInt;
 
-        tempInt = atoi(argv[1]);
-        if (tempInt < 0 || tempInt > 3) {
-            printf("Error: i must be in {0,1,2,3}.\n");
+        property = strtol(argv[1], NULL, 10);
+        if (property < 0 || property > 3) {
+            fprintf(stderr, "Error: i must be in {0,1,2,3}.\n");
             errorEncountered = true;
-        } else {
-            property = tempInt; // cast to size_t
         }
 
-        tempInt = atoi(argv[2]);
-        if (tempInt < 3 || tempInt > 8) {
-            printf("Error: N must be in the range [3, 8].\n");
+        numThreads = strtol(argv[2], NULL, 10);
+        if (numThreads < 3 || numThreads > 8) {
+            fprintf(stderr, "Error: N must be in the range [3, 8].\n");
             errorEncountered = true;
-        } else {
-            numThreads = tempInt;
         }
 
-        tempInt = atoi(argv[3]);
-        if (tempInt < 0) {
-            printf("Error: L must be greater than 0.\n");
+        segLength = strtol(argv[3], NULL, 10);
+        if (segLength <= 0) {
+            fprintf(stderr, "Error: L must be greater than 0.\n");
             errorEncountered = true;
-        } else {
-            segLength = tempInt;
         }
 
-        tempInt = atoi(argv[4]);
-        if (tempInt < 0) {
-            printf("Error: M must be greater than 0.\n");
+        numSegments = strtol(argv[4], NULL, 10);
+        if (numSegments <= 0) {
+            fprintf(stderr, "Error: M must be greater than 0.\n");
             errorEncountered = true;
-        } else {
-            numSegments = tempInt;
         }
 
         c[0] = *argv[5];
@@ -158,29 +143,24 @@ int main(int argc, char **argv)
         #pragma omp parallel for num_threads(sizeof(c))
         for (int i = 0; i < sizeof(c); ++i) {
             if (c[i] < 'a' || c[i] > 'a'+7) { // 'a'+7 is 'h'
-                printf("Error: c_i must be between the letters %c and %c.\n", 'a', 'a'+7);
+                fprintf(stderr, "Error: c_i must be between the letters %c and %c.\n", 'a', 'a'+7);
                 errorEncountered = true;
             }
         }
 
-        // Check M/N has no remainder
-        if (numSegments % numThreads != 0)
-            errorEncountered = true;
-
-        /*
-        Segment Check
-        Check that segments of length L with alphabet size N can have all strings valid
-        */
-        if (segLength < 1) {
+        // Check M/N has no remainder.
+        if (numSegments % numThreads != 0) {
+            fprintf(stderr, "Error: M must be evenly divisible by N.\n");
             errorEncountered = true;
         }
 
+        // Check if segments of length L with alphabet size N can have all strings valid.
         bool validStringPossible = false;
         if (numThreads >= 4) {
+            // It's always possible to make a valid string with 4 or more letters.
             validStringPossible = true;
             goto segmentCheckEnd;
         }
-
         for (int c0 = 0; c0 <= segLength; c0++) {
             for (int c1 = 0; c1 <= segLength; c1++) {
                 for (int c2 = 0; c2 <= segLength; c2++) {
@@ -188,7 +168,7 @@ int main(int argc, char **argv)
                         continue;
                     }
 
-                    switch(property){
+                    switch(property) {
                         case 0:
                             if (((c0 + c1 == c2) && (numThreads >= 3)))
                             {
@@ -225,13 +205,11 @@ int main(int argc, char **argv)
                 }
             }
         }
-        segmentCheckEnd: ;
+        segmentCheckEnd: ; // label to an empty statement
 
         if (!validStringPossible) {
             errorEncountered = true;
-            printf("*A valid string is NOT possible*\n");
-        } else {
-            printf("*A valid string IS possible*\n");
+            fprintf(stderr, "Error: A valid string is impossible to create with the given parameters.\n");
         }
 
         // Exit if any error was encountered.
@@ -242,14 +220,13 @@ int main(int argc, char **argv)
     }
 
     // Initialize string
-    pa1_str* str = malloc(sizeof(pa1_str));
+    pa_str* str = malloc(sizeof(pa_str));
     initStr(str, numSegments, segLength);
 
     // Threads
     struct threadParams params[numThreads];
 
-    omp_set_num_threads(numThreads);
-    #pragma omp parallel for
+    #pragma omp parallel for num_threads(numThreads)
     for (int i = 0; i < numThreads; ++i) {
         params[i].id = i;
         params[i].letter = 'a'+i;
