@@ -235,7 +235,9 @@ int main(int argc, char **argv)
         c[0] = *argv[5];
         c[1] = *argv[6];
         c[2] = *argv[7];
-        for (int i = 0; i < 3; ++i) {
+        
+        #pragma omp parallel for num_threads(sizeof(c))
+        for (int i = 0; i < sizeof(c); ++i) {
             if (c[i] < 'a' || c[i] > 'a'+7) { // 'a'+7 is 'h'
                 printf("Error: c_i must be between the letters %c and %c.\n", 'a', 'a'+7);
                 errorEncountered = true;
