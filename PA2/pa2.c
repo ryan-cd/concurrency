@@ -35,88 +35,6 @@ void printInstructions() {
         "Example: ./pa1.x 0 3 6 3 b c a\n");
 }
 
-bool canWrite(char letter, char* segment, size_t segLength, char c[3], size_t property) {
-    size_t c0Initial = 0;
-    size_t c1Initial = 0;
-    size_t c2Initial = 0;
-    size_t cxInitial = 0;
-
-    if (letter == c[0]) {
-        c0Initial++;
-    } else if (letter == c[1]) {
-        c1Initial++;
-    } else if (letter == c[2]) {
-        c2Initial++;
-    }
-
-    if ((letter != c[0]) && (letter != c[1]) && (letter != c[2])) {
-        cxInitial++;
-    }
-
-    for (int i = 0; i < segLength; i++) {
-        if (c[0] == segment[i]) {
-            c0Initial++;
-        }
-        else if (c[1] == segment[i]) {
-            c1Initial++;
-        }
-        else if (c[2] == segment[i]) {
-            c2Initial++;
-        }
-        // No more characters in this segment
-        else if (segment[i] == 0) {
-            break;
-        //There is a letter not in c[3]
-        } else {
-            cxInitial++;
-        }
-    }
-
-    for (int c0 = c0Initial; c0 <= segLength; c0++) {
-        for (int c1 = c1Initial; c1 <= segLength; c1++) {
-            for (int c2 = c2Initial; c2 <= segLength; c2++) {
-                for (int cx = cxInitial; cx <= segLength; cx++) {
-                    if (segLength != c0 + c1 + c2 + cx) {
-                        continue;
-                    }
-
-                    switch(property){
-                        case 0:
-                            if (c0 + c1 == c2)
-                            {
-                                return true;
-                            }
-                            break;
-                        case 1:
-                            if (c0 + 2*c1 == c2)
-                            {
-                                return true;
-                            }
-                            break;
-                        case 2:
-                            if (c0 * c1 == c2)
-                            {
-                                return true;
-                            }
-                            break;
-                        case 3:
-                            if (c0 - c1 == c2)
-                            {
-                                return true;
-                            }
-                            break;
-                        default:
-                            printf("Invalid check\n");
-                            return false;
-                    }
-                }
-            }
-        }
-    }
-
-    return false;
-}
-
 bool checkProperty(char *segment, size_t length, char *c, size_t property) {
     // Count the occurences of each letter in c.
     int occurences[3] = {0,0,0};
@@ -160,15 +78,17 @@ bool checkProperty(char *segment, size_t length, char *c, size_t property) {
 void *threadFunc(void *p)
 {
     struct threadParams *params = (struct threadParams *)p;
+
+    // Loop until the string has been completely built.
     while (params->str->index < params->numSegments*params->segLength) { // |S| < M * L
         // Sleep for a random period between 100ms and 500ms.
         unsigned int microseconds = (rand() % (500000 + 1 - 100000)) + 100000; // Biased due to modulus.
         usleep(microseconds);
-        if (canWrite(params->letter, &params->str->str[params->str->segmentIndex], params->segLength, params->c, params->property)) {
-            writeStr(params->str, params->letter);
-        }
+        // writeStr will do the enforcement.
+        writeStr(params->str, params->letter, params->c, params->property);
     }
 
+    // Do the check after the string has been completely built.
     char *segment = NULL;
     while((segment = getSegmentToCheck(params->str)) != NULL) {
         if (checkProperty(segment, params->segLength, params->c, params->property)) {
@@ -234,7 +154,7 @@ int main(int argc, char **argv)
         c[0] = *argv[5];
         c[1] = *argv[6];
         c[2] = *argv[7];
-        
+
         #pragma omp parallel for num_threads(sizeof(c))
         for (int i = 0; i < sizeof(c); ++i) {
             if (c[i] < 'a' || c[i] > 'a'+7) { // 'a'+7 is 'h'
@@ -338,7 +258,6 @@ int main(int argc, char **argv)
         params[i].segLength = segLength;
         params[i].numSegments = numSegments;
         params[i].property = property;
-
         threadFunc(&params[i]);
     }
 

@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -std=gnu99 -Wall -fopenmp
 LDFLAGS = -fopenmp
-LDLIB = -lpthread 
+LDLIB = -lpthread
 EXE = pa2.x
 OBJ = pa2.o pa2_str.o
 

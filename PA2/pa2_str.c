@@ -30,14 +30,17 @@ char* readStr(pa1_str* self) {
     return self->str;
 }
 
-int writeStr(pa1_str* self, char newChar) {
+int writeStr(pa1_str* self, char newChar, char enforcementChars[3], size_t enforcementProperty) {
     if (self->index >= self->length)
         return -1;
+
     #pragma omp critical
     {
-        self->str[self->index] = newChar;
-        self->index = self->index + 1;
-        self->segmentIndex = (self->index/self->segmentSize)*self->segmentSize;
+        if (canWrite(newChar, self->segmentIndex, self->segmentSize, enforcementChars, enforcementProperty)) {
+            self->str[self->index] = newChar;
+            self->index = self->index + 1;
+            self->segmentIndex = (self->index/self->segmentSize)*self->segmentSize;
+        }
     }
 
     return 0;
@@ -66,4 +69,89 @@ void incrementValidSegments(pa1_str* self) {
     {
         self->numSegmentsValid++;
     }
+}
+
+/**
+ * Used within the critical section of writeStr.
+ */
+bool canWrite(char letter, char* segment, size_t segLength, char c[3], size_t property) {
+    size_t c0Initial = 0;
+    size_t c1Initial = 0;
+    size_t c2Initial = 0;
+    size_t cxInitial = 0;
+
+    if (letter == c[0]) {
+        c0Initial++;
+    } else if (letter == c[1]) {
+        c1Initial++;
+    } else if (letter == c[2]) {
+        c2Initial++;
+    }
+
+    if ((letter != c[0]) && (letter != c[1]) && (letter != c[2])) {
+        cxInitial++;
+    }
+
+    for (int i = 0; i < segLength; i++) {
+        if (c[0] == segment[i]) {
+            c0Initial++;
+        }
+        else if (c[1] == segment[i]) {
+            c1Initial++;
+        }
+        else if (c[2] == segment[i]) {
+            c2Initial++;
+        }
+        // No more characters in this segment
+        else if (segment[i] == 0) {
+            break;
+        //There is a letter not in c[3]
+        } else {
+            cxInitial++;
+        }
+    }
+
+    for (int c0 = c0Initial; c0 <= segLength; c0++) {
+        for (int c1 = c1Initial; c1 <= segLength; c1++) {
+            for (int c2 = c2Initial; c2 <= segLength; c2++) {
+                for (int cx = cxInitial; cx <= segLength; cx++) {
+                    if (segLength != c0 + c1 + c2 + cx) {
+                        continue;
+                    }
+
+                    switch(property) {
+                        case 0:
+                            if (c0 + c1 == c2)
+                            {
+                                return true;
+                            }
+                            break;
+                        case 1:
+                            if (c0 + 2*c1 == c2)
+                            {
+                                return true;
+                            }
+                            break;
+                        case 2:
+                            if (c0 * c1 == c2)
+                            {
+                                return true;
+                            }
+                            break;
+                        case 3:
+                            if (c0 - c1 == c2)
+                            {
+                                return true;
+                            }
+                            break;
+                        default:
+                            printf("Invalid property to check\n");
+                            return false;
+                    }
+                }
+            }
+        }
+    }
+
+    return false;
 }
