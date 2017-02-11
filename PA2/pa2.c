@@ -7,7 +7,6 @@
 #include <stdbool.h> // bool
 #include <unistd.h> // usleep
 
-#include <pthread.h> // REMOVE
 #include <omp.h>
 
 #include "pa2_str.h"
@@ -79,7 +78,7 @@ bool canWrite(char letter, char* segment, size_t segLength, char c[3], size_t pr
                 for (int cx = cxInitial; cx <= segLength; cx++) {
                     if (segLength != c0 + c1 + c2 + cx) {
                         continue;
-                    }                
+                    }
 
                     switch(property){
                         case 0:
@@ -187,7 +186,7 @@ int main(int argc, char **argv)
     size_t segLength = 0; // L is the length of each segment of S.
     size_t numSegments = 0; // M is the number of segments in S to generate.
     char c[3]; // c[i], i in {0, 1, 2}, are the letters to be used in the property check.
-    
+
     if (argc < 7)
     {
         printInstructions();
@@ -261,6 +260,7 @@ int main(int argc, char **argv)
             validStringPossible = true;
             goto segmentCheckEnd;
         }
+
         for (int c0 = 0; c0 <= segLength; c0++) {
             for (int c1 = 0; c1 <= segLength; c1++) {
                 for (int c2 = 0; c2 <= segLength; c2++) {
@@ -270,28 +270,28 @@ int main(int argc, char **argv)
 
                     switch(property){
                         case 0:
-                            if (((c0 + c1 == c2) && (numThreads >= 3))) 
+                            if (((c0 + c1 == c2) && (numThreads >= 3)))
                             {
                                 validStringPossible = true;
                                 goto segmentCheckEnd;
                             }
                             break;
                         case 1:
-                            if (((c0 + 2*c1 == c2) && (numThreads >= 3))) 
+                            if (((c0 + 2*c1 == c2) && (numThreads >= 3)))
                             {
                                 validStringPossible = true;
                                 goto segmentCheckEnd;
                             }
                             break;
                         case 2:
-                            if (((c0 * c1 == c2) && (numThreads >= 3))) 
+                            if (((c0 * c1 == c2) && (numThreads >= 3)))
                             {
                                 validStringPossible = true;
                                 goto segmentCheckEnd;
                             }
                             break;
                         case 3:
-                            if (((c0 - c1 == c2) && (numThreads >= 3))) 
+                            if (((c0 - c1 == c2) && (numThreads >= 3)))
                             {
                                 validStringPossible = true;
                                 goto segmentCheckEnd;
@@ -305,7 +305,7 @@ int main(int argc, char **argv)
                 }
             }
         }
-        segmentCheckEnd:
+        segmentCheckEnd: ;
 
         if (!validStringPossible) {
             errorEncountered = true;
@@ -313,7 +313,6 @@ int main(int argc, char **argv)
         } else {
             printf("*A valid string IS possible*\n");
         }
-
 
         // Exit if any error was encountered.
         if (errorEncountered) {
@@ -327,9 +326,10 @@ int main(int argc, char **argv)
     initStr(str, numSegments, segLength);
 
     // Threads
-    pthread_t threads[numThreads];
     struct threadParams params[numThreads];
 
+    omp_set_num_threads(numThreads);
+    #pragma omp parallel for
     for (int i = 0; i < numThreads; ++i) {
         params[i].id = i;
         params[i].letter = 'a'+i;
@@ -338,11 +338,8 @@ int main(int argc, char **argv)
         params[i].segLength = segLength;
         params[i].numSegments = numSegments;
         params[i].property = property;
-        pthread_create(&threads[i], NULL, threadFunc, &params[i]);
-    }
 
-    for (int i = 0; i < numThreads; ++i) {
-        pthread_join(threads[i], NULL);
+        threadFunc(&params[i]);
     }
 
     // Print final values
