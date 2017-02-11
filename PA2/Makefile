@@ -1,9 +1,9 @@
 CC = gcc
-CFLAGS = -std=gnu99 -Wall
+CFLAGS = -std=gnu99 -Wall -fopenmp
 LDFLAGS = 
 LDLIB = -lpthread
-EXE = pa1.x
-OBJ = pa1.o pa1_str.o
+EXE = pa2.x
+OBJ = pa2.o pa2_str.o
 
 $(EXE): $(OBJ)
 	$(CC) $(LDFLAGS) $^ $(LDLIB) -o $@

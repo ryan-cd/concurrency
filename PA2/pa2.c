@@ -7,10 +7,10 @@
 #include <stdbool.h> // bool
 #include <unistd.h> // usleep
 
-#include <pthread.h>
-#include <semaphore.h>
+#include <pthread.h> // REMOVE
+#include <omp.h>
 
-#include "pa1_str.h"
+#include "pa2_str.h"
 
 struct threadParams {
     int id;
