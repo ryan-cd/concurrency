@@ -6,7 +6,6 @@
 #define __PA1_STR__
 
 #include <stddef.h>
-#include <pthread.h>
 
 typedef struct _pa1_str {
     char* str;
