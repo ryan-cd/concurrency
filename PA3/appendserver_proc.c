@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <pthread.h>
 #include "appendserver.h"
+#include <unistd.h>
 
 #define OTHERPORT 1337
 #define BUFLEN 2076

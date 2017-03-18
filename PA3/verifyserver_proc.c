@@ -3,6 +3,7 @@
 #include <sys/types.h>
 #include <pthread.h>
 #include "verifyserver.h"
+#include <unistd.h>
 
 #define PORT 1337
 #define BUFLEN 2076
@@ -62,14 +63,6 @@ void setupUDP() {
 	} else {
 		printf("UDP Thread created.\n");
 	}
-
-	if(pthread_join(udpThread, NULL)) {
-		printf("Error joining thread\n");
-	} else {
-		printf("UDP thread joined.\n");
-	}
-	
-
 	
 }
 
