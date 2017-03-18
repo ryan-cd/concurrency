@@ -16,6 +16,7 @@ char strIP[BUFLEN];
 char myStr[BUFLEN];
 int slen;
 
+/* Receive the UDP packet of the final string */
 void *receive(void* input) {
 	printf("Waiting to receive string...\n");
 	int recVal;
@@ -31,16 +32,21 @@ void *receive(void* input) {
 	
     close(socketID);
 }
+
 /* Citation: the code to initialize the UDP connection
 was provided in receiver.cpp and main.c from the course
 site */
-void setupUDP() {
+void setupUDP()
+{
 	socketID = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     slen = sizeof(si_other);
-	if (socketID == -1) {
+	if (socketID == -1) 
+	{
 		printf("Socket could not be initialized. Exiting.\n");
 		exit(0);
-	} else {
+	} 
+	else 
+	{
 		printf("Socket created.\n");
 	}
 
@@ -50,7 +56,8 @@ void setupUDP() {
     si_me.sin_addr.s_addr = htonl(INADDR_ANY);
     
     int bindVal = bind(socketID, (struct sockaddr*)&si_me, sizeof(si_me));
-    if (bindVal == -1){
+    if (bindVal == -1)
+	{
         exit(0);
     }
     else
