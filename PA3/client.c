@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <omp.h> // openmp
 
 #include "appendserver.h"
 #include "verifyserver.h"
@@ -12,6 +13,7 @@ void InitAppendServer(char *hostname, AppendArgs args)
     clnt = clnt_create(hostname, RPC_AppendServer, RPC_AppendServer_VERS, "udp");
     if (clnt == NULL) {
         clnt_pcreateerror(hostname);
+        printf("Exiting!");
         exit(1);
     }
 
@@ -35,6 +37,7 @@ void InitVerifyServer(char *hostname, VerifyArgs args)
     clnt = clnt_create(hostname, RPC_VerifyServer, RPC_VerifyServer_VERS, "udp");
     if (clnt == NULL) {
         clnt_pcreateerror(hostname);
+        printf("Exiting!");
         exit(1);
     }
 
@@ -58,6 +61,7 @@ int Append(char *hostname, char letter)
     clnt = clnt_create(hostname, RPC_AppendServer, RPC_AppendServer_VERS, "udp");
     if (clnt == NULL) {
         clnt_pcreateerror(hostname);
+        printf("Exiting!");
         exit(1);
     }
 
@@ -87,6 +91,7 @@ void threadFunc(char *hostname, int thread)
 
 int main(int argc, char **argv)
 {
+    int numThreads = 4;
     char *hostname1 = "localhost";
     char *hostname2 = "verifyserver";
 
@@ -99,15 +104,17 @@ int main(int argc, char **argv)
     args.c2 = 'c';
 
     VerifyArgs vArgs;
-    vArgs.numThreads = 3;
+    vArgs.numThreads = numThreads;
     vArgs.segLength = 6;
     vArgs.numSegments = 3;
 
     InitAppendServer(hostname1, args);
     InitVerifyServer(hostname1, vArgs);
 
-    // Testing
-    threadFunc(hostname1, 0);
+    #pragma omp parallel for num_threads(numThreads)
+    for (int i = 0; i < numThreads; ++i) {
+        threadFunc(hostname1, i);
+    }
 
     return 0;
 }

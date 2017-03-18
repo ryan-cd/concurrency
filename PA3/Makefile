@@ -1,6 +1,7 @@
 .DEFAULT_GOAL := all
 CC = gcc
-CFLAGS = -Wall -Wno-unused-variable
+CFLAGS = -std=gnu99 -Wall -fopenmp
+LDFLAGS = -fopenmp
 LDLIBS = -lnsl
 
 # THREE PROGRAMS
@@ -29,17 +30,17 @@ all: $(RPCGEN_APPEND.output) $(RPCGEN_VERIFY.output) $(CLIENT.exe) $(APPEND.exe)
 
 # LINK
 $(CLIENT.exe): $(OBJS_CLIENT)
-	$(CC) $^ -o $@ $(LDLIBS)
+	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 $(APPEND.exe): $(OBJS_APPEND)
-	$(CC) $^ -o $@ $(LDLIBS)
+	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 $(VERIFY.exe): $(OBJS_VERIFY)
-	$(CC) $^ -o $@ $(LDLIBS)
+	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 # COMPILE
 %.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $<
 
 # RPCGEN
 $(RPCGEN_APPEND.output): $(RPCGEN_APPEND.input)
