@@ -1,40 +1,55 @@
 .DEFAULT_GOAL := all
-
 CC = gcc
 CFLAGS = -Wall -Wno-unused-variable
 LDLIBS = -lnsl
 
-CLIENT = client
-APPEND = server_append
-VERIFY = server_verify
-RPC = .phony
+# THREE PROGRAMS
+CLIENT.exe = client
+APPEND.exe = server_append
+VERIFY.exe = server_verify
 
+# SOURCE FILES FOR EACH PROGRAM
 SOURCES_CLIENT = client.c appendserver_clnt.c appendserver_xdr.c verifyserver_clnt.c verifyserver_xdr.c
 SOURCES_APPEND = appendserver_proc.c appendserver_svc.c appendserver_clnt.c appendserver_xdr.c
 SOURCES_VERIFY = verifyserver_proc.c verifyserver_svc.c verifyserver_clnt.c verifyserver_xdr.c
 
-all : $(RPC) $(CLIENT) $(APPEND) $(VERIFY)
-
-# TODO: split the compile and linking steps
-
-$(CLIENT): $(SOURCES_CLIENT)
-	$(CC) $(CFLAGS) $^ -o $@ $(LDLIBS)
-
-$(APPEND): $(SOURCES_APPEND)
-	$(CC) $(CFLAGS) $^ -o $@ $(LDLIBS)
-
-$(VERIFY): $(SOURCES_VERIFY)
-	$(CC) $(CFLAGS) $^ -o $@ $(LDLIBS)
+# OBJECT FILES FOR EACH PROGRAM
+OBJS_CLIENT = $(SOURCES_CLIENT:%.c=%.o)
+OBJS_APPEND = $(SOURCES_APPEND:%.c=%.o)
+OBJS_VERIFY = $(SOURCES_VERIFY:%.c=%.o)
 
 # RPCGEN
-$(RPC): appendserver.x verifyserver.x
-	rpcgen appendserver.x
-	rpcgen verifyserver.x
+RPCGEN_APPEND.input = appendserver.x
+RPCGEN_VERIFY.input = verifyserver.x
+RPCGEN_APPEND.output = appendserver.h appendserver_svc.c appendserver_clnt.c appendserver_xdr.c
+RPCGEN_VERIFY.output = verifyserver.h verifyserver_svc.c verifyserver_clnt.c verifyserver_xdr.c
+
+# MAKE ALL
+all: $(RPCGEN_APPEND.output) $(RPCGEN_VERIFY.output) $(CLIENT.exe) $(APPEND.exe) $(VERIFY.exe)
+
+# LINK
+$(CLIENT.exe): $(OBJS_CLIENT)
+	$(CC) $^ -o $@ $(LDLIBS)
+
+$(APPEND.exe): $(OBJS_APPEND)
+	$(CC) $^ -o $@ $(LDLIBS)
+
+$(VERIFY.exe): $(OBJS_VERIFY)
+	$(CC) $^ -o $@ $(LDLIBS)
+
+# COMPILE
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# RPCGEN
+$(RPCGEN_APPEND.output): $(RPCGEN_APPEND.input)
+	rpcgen $<
+
+$(RPCGEN_VERIFY.output): $(RPCGEN_VERIFY.input)
+	rpcgen $<
 
 # CLEANUP
 clean:
-	rm $(CLIENT) $(APPEND) $(VERIFY) \
-		appendserver_svc.c appendserver_clnt.c appendserver_xdr.c appendserver.h \
-		verifyserver_svc.c verifyserver_clnt.c verifyserver_xdr.c verifyserver.h
-
-
+	rm -f $(CLIENT.exe) $(APPEND.exe) $(VERIFY.exe) \
+		$(OBJS_CLIENT) $(OBJS_APPEND) $(OBJS_VERIFY) \
+		$(RPCGEN_APPEND.output) $(RPCGEN_VERIFY.output)
