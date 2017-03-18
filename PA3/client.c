@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h> // usleep
 #include <omp.h> // openmp
 
 #include "appendserver.h"
@@ -7,86 +8,84 @@
 
 void InitAppendServer(char *hostname, AppendArgs args)
 {
-    CLIENT *clnt;
-    int  *result;
-
-    clnt = clnt_create(hostname, RPC_AppendServer, RPC_AppendServer_VERS, "udp");
+    // Connect to RPC_AppendServer
+    CLIENT *clnt = clnt_create(hostname, RPC_AppendServer, RPC_AppendServer_VERS, "udp");
     if (clnt == NULL) {
-        clnt_pcreateerror(hostname);
-        printf("Exiting!");
+        clnt_pcreateerror("clnt_create");
+        printf("Exiting!\n");
         exit(1);
     }
-
-    result = rpc_initappendserver_1(&args, clnt);
-
+    // Call RPC_InitAppendServer
+    int *result = rpc_initappendserver_1(&args, clnt);
     if (result == NULL) {
-        clnt_perror(clnt, hostname);
+        clnt_perror(clnt, "rpc_initappendserver_1");
+        printf("Exiting!\n");
+        exit(1);
     }
-    else {
-        printf("Result: %d\n", *result);
-    }
-
     clnt_destroy(clnt);
 }
 
 void InitVerifyServer(char *hostname, VerifyArgs args)
 {
-    CLIENT *clnt;
-    int  *result;
-
-    clnt = clnt_create(hostname, RPC_VerifyServer, RPC_VerifyServer_VERS, "udp");
+    // Connect to RPC_VerifyServer
+    CLIENT *clnt = clnt_create(hostname, RPC_VerifyServer, RPC_VerifyServer_VERS, "udp");
     if (clnt == NULL) {
         clnt_pcreateerror(hostname);
-        printf("Exiting!");
+        printf("Exiting!\n");
         exit(1);
     }
-
-    result = rpc_initverifyserver_1(&args, clnt);
-
+    // Call RPC_InitVerifyServer
+    int *result = rpc_initverifyserver_1(&args, clnt);
     if (result == NULL) {
-        clnt_perror(clnt, hostname);
-    }
-    else {
-        printf("Result: %d\n", *result);
-    }
-
-    clnt_destroy(clnt);
-}
-
-int Append(char *hostname, char letter)
-{
-    CLIENT *clnt;
-    int  *result;
-
-    clnt = clnt_create(hostname, RPC_AppendServer, RPC_AppendServer_VERS, "udp");
-    if (clnt == NULL) {
-        clnt_pcreateerror(hostname);
-        printf("Exiting!");
+        clnt_perror(clnt, "rpc_initverifyserver_1");
+        printf("Exiting!\n");
         exit(1);
     }
-
-    result = rpc_append_1(&letter, clnt);
-
-    if (result == NULL) {
-        clnt_perror(clnt, hostname);
-    }
-
     clnt_destroy(clnt);
-
-    return *result;
 }
 
 void threadFunc(char *hostname, int thread)
 {
-    int letter = 'a' + thread;
-    int appendResult = 0;
-    while (appendResult == 0) {
-        // Sleep for a random period between 100ms and 500ms.
-        unsigned int microseconds = (rand() % (500000 + 1 - 100000)) + 100000; // Biased due to modulus.
+    // Connect to RPC_AppendServer
+    CLIENT *appendClient = appendClient = clnt_create(hostname, RPC_AppendServer, RPC_AppendServer_VERS, "udp");
+    if (appendClient == NULL) {
+        clnt_pcreateerror(hostname);
+        printf("Thread #%d: unable to connect to AppendServer!\n", thread);
+        exit(1);
+    }
+    // Connect to RPC_VerifyServer
+    CLIENT *verifyClient = verifyClient = clnt_create(hostname, RPC_VerifyServer, RPC_VerifyServer_VERS, "udp");
+    if (verifyClient == NULL) {
+        clnt_pcreateerror(hostname);
+        printf("Thread #%d: unable to connect to AppendServer!\n", thread);
+        exit(1);
+    }
+
+    // Append letters until the string is completely built
+    char letter = 'a' + thread;
+    int *result = NULL;
+    while (1) {
+        // Sleep for a random period between 100ms and 500ms
+        unsigned int microseconds = (rand() % (500000 + 1 - 100000)) + 100000;
         usleep(microseconds);
         // Append letter
-        appendResult = Append(hostname, letter);
+        result = rpc_append_1(&letter, appendClient);
+        if (result == NULL) {
+            clnt_perror(appendClient, "Unable to append");
+            break;
+        } else {
+            if (*result == -1) {
+                break;
+            }
+        }
     }
+
+    // Verify the string
+    // TODO
+
+    // Clean up
+    clnt_destroy(appendClient);
+    clnt_destroy(verifyClient);
 }
 
 int main(int argc, char **argv)
@@ -98,7 +97,7 @@ int main(int argc, char **argv)
     AppendArgs args;
 	args.property = 0;
 	args.segLength = 4;
-	args.numSegments = 2;
+	args.numSegments = 20;
 	args.c0 = 'a';
     args.c1 = 'b';
     args.c2 = 'c';
