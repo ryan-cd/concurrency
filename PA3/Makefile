@@ -4,6 +4,10 @@ CFLAGS = -std=gnu99 -Wall -fopenmp
 LDFLAGS = -fopenmp
 LDLIBS = -lnsl
 
+# EXAMPLE RUN
+run:
+	./client 0 4 12 4 a b c localhost localhost
+
 # THREE PROGRAMS
 CLIENT.exe = client
 APPEND.exe = server_append
