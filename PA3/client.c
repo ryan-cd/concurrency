@@ -72,5 +72,23 @@ int main(int argc, char **argv)
     InitAppendServer(hostname1, args);
     InitVerifyServer(hostname1, vArgs);
 
+    CLIENT *clnt;
+    int  *result;
+
+    clnt = clnt_create(hostname1, RPC_VerifyServer, RPC_VerifyServer_VERS, "udp");
+    if (clnt == NULL) {
+        clnt_pcreateerror(hostname1);
+        exit(1);
+    }
+    char letter = 'a';
+    result = rpc_append_1(&letter, clnt);
+    if (result == NULL) {
+        clnt_perror(clnt, hostname1);
+    }
+    else {
+        printf("Result of sending a character: %d\n", *result);
+    }
+
     return 0;
 }
+
