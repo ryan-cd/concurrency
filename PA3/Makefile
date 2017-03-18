@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := all
 
 CC = gcc
-CFLAGS = -Wall
+CFLAGS = -Wall -Wno-unused-variable
 LDLIBS = -lnsl
 
 CLIENT = client

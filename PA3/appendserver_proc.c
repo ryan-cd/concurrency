@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "appendserver.h"
 
-int *rpc_initappendserver_1_svc(char **args, struct svc_req *req)
+int *rpc_initappendserver_1_svc(AppendArgs *args, struct svc_req *req)
 {
 	static int result = 1;
 	printf("RPC_InitAppendServer\n");
