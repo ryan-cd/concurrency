@@ -34,7 +34,7 @@ int *rpc_append_1_svc(char *letter, struct svc_req *req)
 {
 	static int result = 0;
 	printf("RPC_Append\n");
-	printf("string: %s\n", string);
+	printf("string: %s\n", string.str);
 
 	// Append letter if there is space
 	if (string.index < string.length) {
