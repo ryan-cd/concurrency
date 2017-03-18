@@ -60,20 +60,18 @@ int *rpc_append_1_svc(char *letter, struct svc_req *req)
 	else
 		printf("UDP Socket created successfully.\n");
 
-	//strIP = "127.0.0.1";
 	struct sockaddr_in sis;
 	int sislen=sizeof(sis);
 	memset((char *) &sis, 0, sizeof(sis));
 	sis.sin_family = AF_INET;
 	sis.sin_port = htons(OTHERPORT);
-	inet_aton("127.0.0.1", &sis.sin_addr);
+	inet_aton("localhost", &sis.sin_addr);
 
-    /*while (1) {
-        printf("Enter a message:");
-        scanf("%s", myStr);
-        sendto(s, myStr, sizeof(myStr), 0, (struct sockaddr *)&sis, sislen);
-    }*/
 
+	strncpy(myStr, "Example_Final_string", BUFLEN);
+	int sendStatus = sendto(s, myStr, sizeof(myStr), 0, (struct sockaddr *)&sis, sislen);
+
+	close(s);
 
 	return &result;
 }
