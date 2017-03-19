@@ -336,7 +336,7 @@ int main(int argc, char **argv)
 
     // Connect to the Verify server to request the whole string.
     CLIENT *clnt = clnt_create(hostname2, RPC_VerifyServer, RPC_VerifyServer_VERS, "udp");
-    LLString *llstring; // Linked List structure to hold the string
+    LLString *llstring = NULL; // Linked List structure to hold the string
     int id = 0; // Unused
     // Retry while the string isn't ready to be sent
     while (llstring == NULL || llstring->bytesLeft == 0) {
@@ -369,5 +369,6 @@ int main(int argc, char **argv)
     }
     fprintf(file, "%s\n%ld\n", "finalString" /*finalString*/, numSegmentsValid);
 
+    free(finalString);
     return 0;
 }

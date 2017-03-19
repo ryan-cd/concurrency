@@ -130,8 +130,8 @@ int *rpc_initverifyserver_1_svc(VerifyArgs *args, struct svc_req *req)
 
 LLString *rpc_getseg_1_svc(int *thread, struct svc_req *req)
 {
-	static LLString result;
-	static LLString **realResult;
+	static LLString result; // For passing messages through result.bytesLeft
+	static LLString **realResult; // A result buffer for each thread
 	static int segmentsChecked;
 
 	result.bytesLeft = 0;
@@ -148,13 +148,13 @@ LLString *rpc_getseg_1_svc(int *thread, struct svc_req *req)
 
 	if (segmentsChecked < verifyArgs.numSegments) {
 		if (realResult[*thread] != 0) {
-			freeLLString(realResult[*thread]);
+			freeLLString(realResult[*thread]); // Free memory of previous segment given the same thread
 		}
 		realResult[*thread] = createLLString(&rcvBuf[segmentsChecked*verifyArgs.segLength], verifyArgs.segLength);
 		segmentsChecked += 1;
 		return realResult[*thread];
 	} else {
-		result.bytesLeft = -1;
+		result.bytesLeft = -1; // Client should read -1 and stop requesting segments
 		printf("No more segments.\n");
 		return &result;
 	}
@@ -162,7 +162,7 @@ LLString *rpc_getseg_1_svc(int *thread, struct svc_req *req)
 
 LLString *rpc_getstring_1_svc(int *thread, struct svc_req *req)
 {
-	static LLString result;
+	static LLString result; // For passing messages through result.bytesLeft
 	static LLString *realResult;
 
 	result.bytesLeft = 0;
@@ -176,7 +176,7 @@ LLString *rpc_getstring_1_svc(int *thread, struct svc_req *req)
 	int stringLen = verifyArgs.segLength * verifyArgs.numSegments;
 
 	if (realResult != NULL) {
-		freeLLString(realResult);
+		freeLLString(realResult);  // Free memory if a string already exists
 	}
 	realResult = createLLString(rcvBuf, stringLen);
 	return realResult;
