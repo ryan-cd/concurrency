@@ -29,8 +29,6 @@ void *receive(void *input) {
 
 	stringReceived = 1;
 	printf("String received: %s\n", rcvBuf);
-    //printf("Received packet from %s:%d\nMessage: %s\n\n",
-            //inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port), rcvBuf);
 
     close(socketID);
 	return NULL;
@@ -42,6 +40,12 @@ site */
 void setupUDP()
 {
 	socketID = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	//Make the socket reusable
+	if (setsockopt(socketID, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 },
+        sizeof(int)) < 0) 
+	{
+		printf("Unable to set the reuse option for the socket");
+	}
     slen = sizeof(si_other);
 	if (socketID == -1)
 	{
@@ -61,6 +65,7 @@ void setupUDP()
     int bindVal = bind(socketID, (struct sockaddr*)&si_me, sizeof(si_me));
     if (bindVal == -1)
 	{
+		printf("Port could not be bound");
         exit(0);
     }
     else
@@ -179,5 +184,6 @@ LLString *rpc_getstring_1_svc(int *thread, struct svc_req *req)
 		freeLLString(realResult);  // Free memory if a string already exists
 	}
 	realResult = createLLString(rcvBuf, stringLen);
+
 	return realResult;
 }
