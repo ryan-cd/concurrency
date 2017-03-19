@@ -7,6 +7,14 @@
 #include "appendserver.h"
 #include "verifyserver.h"
 
+size_t property = 0; // i is the index of the property Fi which each segment of S needs to satisfy.
+size_t numThreads = 0; // N is the number of threads.
+size_t segLength = 0; // L is the length of each segment of S.
+size_t numSegments = 0; // M is the number of segments in S to generate.
+char c[3]; // c[i], i in {0, 1, 2}, are the letters to be used in the property check.
+char *hostname1; // Hostname of the append server.
+char *hostname2; // Hostname of the verify server.
+
 void InitAppendServer(char *hostname, AppendArgs args)
 {
     // Connect to RPC_AppendServer
@@ -43,6 +51,45 @@ void InitVerifyServer(char *hostname, VerifyArgs args)
         exit(1);
     }
     clnt_destroy(clnt);
+}
+
+bool checkProperty(char *segment, size_t segLength, char* c, size_t property) {
+    // Count the occurences of each letter in c.
+    int occurences[3] = {0,0,0};
+    for (size_t i = 0; i < segLength; i++) {
+        for (int j = 0; j < 3; j++) {
+            if (segment[i] == c[j]) {
+                occurences[j]++;
+            }
+        }
+    }
+    bool isValid = false;
+    switch (property) {
+        case 0:
+            if (occurences[0] + occurences[1] == occurences[2]) {
+                isValid = true;
+            }
+            break;
+        case 1:
+            if (occurences[0] + 2 * occurences[1] == occurences[2]) {
+                isValid = true;
+            }
+            break;
+        case 2:
+            if (occurences[0] * occurences[1] == occurences[2]) {
+                isValid = true;
+            }
+            break;
+        case 3:
+            if (occurences[0] - occurences[1] == occurences[2]) {
+                isValid = true;
+            }
+            break;
+        default:
+            printf("Error: Invalid property");
+            break;
+    }
+    return isValid;
 }
 
 size_t threadFunc(char *hostname1, char *hostname2, int thread)
@@ -85,6 +132,11 @@ size_t threadFunc(char *hostname1, char *hostname2, int thread)
     // TODO
     size_t numSegmentsValid = 1;
 
+    //test usage of verification checker
+    char * example = "eabacf";
+    printf("Check of string %s and property 3 returned %d\n", 
+            example, checkProperty(example, 6, c, 3));
+
     // Clean up
     clnt_destroy(appendClient);
     clnt_destroy(verifyClient);
@@ -103,20 +155,11 @@ void printInstructions() {
         "\t c_i: (0<=i<=2) The letters to be used in the property check.\n"
         "\t hostname_1:    The hostname of the Append server.\n"
         "\t hostname_2:    The hostname of the Verify server.\n"
-        "Example: ./client 0 3 6 3 a b c mills moore\n");
+        "Example: ./client 0 3 6 3 a b c moore moore\n");
 }
 
 int main(int argc, char **argv)
 {
-    size_t property = 0; // i is the index of the property Fi which each segment of S needs to satisfy.
-    size_t numThreads = 0; // N is the number of threads.
-    size_t segLength = 0; // L is the length of each segment of S.
-    size_t numSegments = 0; // M is the number of segments in S to generate.
-    char c[3]; // c[i], i in {0, 1, 2}, are the letters to be used in the property check.
-    char *hostname1; // Hostname of the append server.
-    char *hostname2; // Hostname of the verify server.
-
-    ////////////////////////////////////////////////////////////////////////////
     if (argc < 7)
     {
         printInstructions();
