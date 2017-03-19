@@ -258,16 +258,39 @@ int main(int argc, char **argv)
         numSegmentsValid = threadFunc(hostname1, hostname2, i);
     }
 
+    // Connect to the Verify server to request the whole string.
+    CLIENT *clnt = clnt_create(hostname2, RPC_VerifyServer, RPC_VerifyServer_VERS, "udp");
+    LLString *llstring; // Linked List structure to hold the string
+    int id = 0; // Unused
+    // Retry while the string isn't ready to be sent
+    while (llstring == NULL || llstring->bytesLeft == 0) {
+        llstring = rpc_getstring_1(&id, clnt);
+        sleep(1);
+    }
+    clnt_destroy(clnt);
+
+    // Parse LLString to char *
+    int llbufsize = 1024; // Size of LLString buffer chunks
+    int stringLength = numSegments*segLength;
+    char *finalString = calloc(stringLength+1, sizeof(char));  // Output string
+    int parsed = 0;  // Amount of bytes parsed so far
+    while (parsed < stringLength) {
+        int used = (llstring->bytesLeft < llbufsize) ? llstring->bytesLeft : llbufsize;
+        memcpy(&finalString[parsed], llstring->buffer, used);
+        parsed += used;
+        llstring = llstring->next;
+    }
+
     // Print final values
     printf("Final string (formatted): ");
     for (int i = 0; i < numSegments*segLength; i++) {
         if (i%segLength == 0) {
             printf(" ");
         }
-        printf("%c", 'x'/*finalString[i]*/);
+        printf("%c", finalString[i]);
     }
     printf("\n");
-    printf("Final string (unformatted): %s\n", "finalString"/*finalString*/);
+    printf("Final string (unformatted): %s\n", finalString);
     printf("Valid segments: %ld\n", numSegmentsValid);
 
     // Write to file
