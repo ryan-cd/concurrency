@@ -241,6 +241,7 @@ int main(int argc, char **argv)
     appendArgs.property = property;
     appendArgs.segLength = segLength;
     appendArgs.numSegments = numSegments;
+    appendArgs.verifyHostname = hostname2;
     for (int i = 0; i < 3; i++)
         appendArgs.c[i] = c[i];
 

@@ -31,6 +31,7 @@ void *receive(void* input) {
             //inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port), rcvBuf);
 	
     close(socketID);
+	return NULL;
 }
 
 /* Citation: the code to initialize the UDP connection

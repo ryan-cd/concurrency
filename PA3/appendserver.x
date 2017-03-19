@@ -8,6 +8,7 @@
 	int segLength; /* L */
 	int numSegments; /* M */
 	char c[3];
+    char *verifyHostname;
 };
 
 program RPC_AppendServer {
