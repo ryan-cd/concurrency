@@ -77,6 +77,44 @@ void setupUDP()
 
 
 VerifyArgs verifyArgs;
+const int llbufsize = 1024; // Size of LLString buffer chunks
+
+/* Parse char * to LLString */
+LLString *createLLString(char *source, int length) {
+	LLString *llstring;
+
+	int leftoverLength = length; // Bytes left to write
+	int parsed = 0; // Bytes written so far
+
+	LLString *head = NULL;
+	while (leftoverLength > 0) {
+		LLString *nextPart = malloc(sizeof(LLString));
+		nextPart->bytesLeft = leftoverLength;
+		int used = (leftoverLength < llbufsize) ? leftoverLength : llbufsize;
+		memcpy(nextPart->buffer, &source[parsed], used);
+		parsed += used;
+		leftoverLength -= used;
+
+		if (head == NULL) {
+			llstring = nextPart;
+		} else {
+			head->next = nextPart;
+		}
+		head = nextPart;
+	}
+
+	return llstring;
+}
+
+void freeLLString(LLString *llstring)
+{
+	LLString *temp;
+	while (llstring->next != NULL) {
+		temp = llstring;
+		llstring = llstring->next;
+		free(temp);
+	}
+}
 
 int *rpc_initverifyserver_1_svc(VerifyArgs *args, struct svc_req *req)
 {
@@ -93,48 +131,53 @@ int *rpc_initverifyserver_1_svc(VerifyArgs *args, struct svc_req *req)
 LLString *rpc_getseg_1_svc(int *thread, struct svc_req *req)
 {
 	static LLString result;
-	printf("RPC_GetSeg\n");
+	static LLString **realResult;
+	static int segmentsChecked;
 
-	return &result;
+	result.bytesLeft = 0;
+	printf("RPC_GetSeg: Thread #%d\n", *thread);
+
+	if (stringReceived != 1) {
+		printf("Requested string too soon. Resend the request.\n");
+		return &result; // Client should read that bytesLeft is 0 and re-request.
+	}
+
+	if (realResult == NULL) {
+		realResult = calloc(verifyArgs.numThreads, sizeof(LLString));
+	}
+
+	if (segmentsChecked < verifyArgs.numSegments) {
+		if (realResult[*thread] != 0) {
+			freeLLString(realResult[*thread]);
+		}
+		realResult[*thread] = createLLString(&rcvBuf[segmentsChecked*verifyArgs.segLength], verifyArgs.segLength);
+		segmentsChecked += 1;
+		return realResult[*thread];
+	} else {
+		result.bytesLeft = -1;
+		printf("No more segments.\n");
+		return &result;
+	}
 }
 
 LLString *rpc_getstring_1_svc(int *thread, struct svc_req *req)
 {
-	static LLString llstring;
-	llstring.bytesLeft = 0;
+	static LLString result;
+	static LLString *realResult;
+
+	result.bytesLeft = 0;
 	printf("RPC_GetString\n");
 
 	if (stringReceived != 1) {
 		printf("Requested string too soon. Resend the request.\n");
-		return &llstring; // Client should read that bytesLeft is 0 and re-request.
+		return &result; // Client should read that bytesLeft is 0 and re-request.
 	}
 
-	/* Parse char * to LLString */
-	int totalLength = verifyArgs.segLength*verifyArgs.numSegments;
-	int leftoverLength = totalLength; // Bytes left to write
-	int parsed = 0; // Bytes written so far
-	int llbufsize = 1024; // Size of LLString buffer chunks
+	int stringLen = verifyArgs.segLength * verifyArgs.numSegments;
 
-	// Stuff up to llbufsize bytes into the LLString
-	llstring.bytesLeft = leftoverLength;
-	int used = (leftoverLength < llbufsize) ? leftoverLength : llbufsize;
-	memcpy(llstring.buffer, &rcvBuf[parsed], used);
-	parsed += used;
-	leftoverLength -= used;
-
-	// While the char * is larger than llbufsize, create linked lists
-	LLString *head = &llstring;
-	while (leftoverLength > 0) {
-		LLString *nextPart = malloc(sizeof(LLString));
-		nextPart->bytesLeft = leftoverLength;
-		int used = (leftoverLength < llbufsize) ? leftoverLength : llbufsize;
-		memcpy(nextPart->buffer, &rcvBuf[parsed], used);
-		parsed += used;
-		leftoverLength -= used;
-
-		head->next = nextPart;
-		head = nextPart;
+	if (realResult != NULL) {
+		freeLLString(realResult);
 	}
-
-	return &llstring;
+	realResult = createLLString(rcvBuf, stringLen);
+	return realResult;
 }

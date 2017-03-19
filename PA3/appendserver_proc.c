@@ -55,7 +55,7 @@ void sendStringToVerify()
  * Returns whether the letter can be added with respect to the enforcement property.
  * Used within the critical section of writing a character
  */
-bool canWrite(char letter, char* segment, size_t segLength, char c[3], size_t property) 
+bool canWrite(char letter, char* segment, size_t segLength, char c[3], size_t property)
 {
 	size_t c0Initial = 0;
     size_t c1Initial = 0;
@@ -165,7 +165,7 @@ int *rpc_append_1_svc(char *letter, struct svc_req *req)
 	printf("string [%d/%d]: %s \n", string.index, string.length, string.str);
 
 	// Check if there is space to append
-	if (string.index >= string.length) 
+	if (string.index >= string.length)
 	{
 		result = -1;
 	}
@@ -181,9 +181,9 @@ int *rpc_append_1_svc(char *letter, struct svc_req *req)
 			}
 			result = 0;
 		}
-	} 
+	}
 
-	if (!stringSentToVerify && string.index >= string.length) 
+	if (!stringSentToVerify && string.index >= string.length)
 	{
 		sendStringToVerify();
 		stringSentToVerify = true;

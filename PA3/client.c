@@ -53,6 +53,22 @@ void InitVerifyServer(char *hostname, VerifyArgs args)
     clnt_destroy(clnt);
 }
 
+/* Parse LLString to char *. */
+char *parseLLString(LLString *llstring, int length)
+{
+    const int llbufsize = 1024; // Size of LLString buffer chunks
+
+    char *result = calloc(length + 1, sizeof(char));  // Output string
+    int parsed = 0;  // Amount of bytes parsed so far
+    while (parsed < length) {
+        int used = (llstring->bytesLeft < llbufsize) ? llstring->bytesLeft : llbufsize;
+        memcpy(&result[parsed], llstring->buffer, used);
+        parsed += used;
+        llstring = llstring->next;
+    }
+    return result;
+}
+
 bool checkProperty(char *segment, size_t segLength, char* c, size_t property) {
     // Count the occurences of each letter in c.
     int occurences[3] = {0,0,0};
@@ -132,10 +148,26 @@ size_t threadFunc(char *hostname1, char *hostname2, int thread)
     // TODO
     size_t numSegmentsValid = 1;
 
-    //test usage of verification checker
-    char * example = "eabacf";
-    printf("Check of string %s and property 3 returned %d\n", 
-            example, checkProperty(example, 6, c, 3));
+    LLString *llsegment; // Linked List structure to hold the segment
+    // Using -1 as the value to determine we're done.
+    while (true) {
+        llsegment = rpc_getseg_1(&thread, verifyClient);
+
+        if (llsegment == NULL || llsegment->bytesLeft == 0) {
+            sleep(1);
+            continue; // Verify server isn't ready.
+        }
+
+        if (llsegment->bytesLeft == -1) {
+            break; // No segments left
+        }
+
+        // Check segment
+        char *segment = parseLLString(llsegment, segLength);
+        printf("[Thread #%d] Segment: %s\n", thread, segment);
+        numSegmentsValid += checkProperty(segment, segLength, c, property);
+        free(segment);
+    }
 
     // Clean up
     clnt_destroy(appendClient);
@@ -313,17 +345,8 @@ int main(int argc, char **argv)
     }
     clnt_destroy(clnt);
 
-    // Parse LLString to char *
-    int llbufsize = 1024; // Size of LLString buffer chunks
-    int stringLength = numSegments*segLength;
-    char *finalString = calloc(stringLength+1, sizeof(char));  // Output string
-    int parsed = 0;  // Amount of bytes parsed so far
-    while (parsed < stringLength) {
-        int used = (llstring->bytesLeft < llbufsize) ? llstring->bytesLeft : llbufsize;
-        memcpy(&finalString[parsed], llstring->buffer, used);
-        parsed += used;
-        llstring = llstring->next;
-    }
+    int stringLength = numSegments * segLength;
+    char *finalString = parseLLString(llstring, stringLength);
 
     // Print final values
     printf("Final string (formatted): ");
