@@ -42,7 +42,7 @@ void sendStringToVerify()
 	memset((char *) &sis, 0, sizeof(sis));
 	sis.sin_family = AF_INET;
 	sis.sin_port = htons(OTHERPORT);
-	inet_aton("localhost", &sis.sin_addr);
+	inet_aton(appendArgs.verifyHostname, &sis.sin_addr);
 
 
 	strncpy(myStr, string.str, BUFLEN);
