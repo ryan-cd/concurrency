@@ -238,9 +238,8 @@ int main(int argc, char **argv)
     appendArgs.property = property;
     appendArgs.segLength = segLength;
     appendArgs.numSegments = numSegments;
-    appendArgs.c0 = c[0];
-    appendArgs.c1 = c[1];
-    appendArgs.c2 = c[2];
+    for (int i = 0; i < 3; i++)
+        appendArgs.c[i] = c[i];
 
     VerifyArgs verifyArgs;
     verifyArgs.numThreads = numThreads;

@@ -7,9 +7,7 @@
 	int property; /* f */
 	int segLength; /* L */
 	int numSegments; /* M */
-	char c0;
-    char c1;
-    char c2;
+	char c[3];
 };
 
 program RPC_AppendServer {
