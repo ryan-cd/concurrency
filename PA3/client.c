@@ -45,7 +45,7 @@ void InitVerifyServer(char *hostname, VerifyArgs args)
     clnt_destroy(clnt);
 }
 
-void threadFunc(char *hostname1, char *hostname2, int thread)
+size_t threadFunc(char *hostname1, char *hostname2, int thread)
 {
     // Connect to RPC_AppendServer
     CLIENT *appendClient = appendClient = clnt_create(hostname1, RPC_AppendServer, RPC_AppendServer_VERS, "udp");
@@ -83,10 +83,13 @@ void threadFunc(char *hostname1, char *hostname2, int thread)
 
     // Verify the string
     // TODO
+    size_t numSegmentsValid = 1;
 
     // Clean up
     clnt_destroy(appendClient);
     clnt_destroy(verifyClient);
+
+    return numSegmentsValid;
 }
 
 void printInstructions() {
@@ -249,10 +252,32 @@ int main(int argc, char **argv)
     InitAppendServer(hostname1, appendArgs);
     InitVerifyServer(hostname1, verifyArgs);
 
-    #pragma omp parallel for num_threads(numThreads)
+    size_t numSegmentsValid = 0;
+    #pragma omp parallel for num_threads(numThreads) reduction(+: numSegmentsValid)
     for (int i = 0; i < numThreads; ++i) {
-        threadFunc(hostname1, hostname2, i);
+        numSegmentsValid = threadFunc(hostname1, hostname2, i);
     }
+
+    // Print final values
+    printf("Final string (formatted): ");
+    for (int i = 0; i < numSegments*segLength; i++) {
+        if (i%segLength == 0) {
+            printf(" ");
+        }
+        printf("%c", 'x'/*finalString[i]*/);
+    }
+    printf("\n");
+    printf("Final string (unformatted): %s\n", "finalString"/*finalString*/);
+    printf("Valid segments: %ld\n", numSegmentsValid);
+
+    // Write to file
+    FILE *file = fopen("out.txt", "w");
+    if (file == NULL)
+    {
+        printf("File could not be opened\n");
+        exit(1);
+    }
+    fprintf(file, "%s\n%ld\n", "finalString" /*finalString*/, numSegmentsValid);
 
     return 0;
 }
