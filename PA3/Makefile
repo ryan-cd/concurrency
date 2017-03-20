@@ -14,9 +14,9 @@ APPEND.exe = server_append
 VERIFY.exe = server_verify
 
 # SOURCE FILES FOR EACH PROGRAM
-SOURCES_CLIENT = client.c appendserver_clnt.c appendserver_xdr.c verifyserver_clnt.c verifyserver_xdr.c
-SOURCES_APPEND = appendserver_proc.c appendserver_svc.c appendserver_clnt.c appendserver_xdr.c
-SOURCES_VERIFY = verifyserver_proc.c verifyserver_svc.c verifyserver_clnt.c verifyserver_xdr.c
+SOURCES_CLIENT = client.c appendserver_clnt.c verifyserver_clnt.c appendserver_xdr.c verifyserver_xdr.c
+SOURCES_APPEND = appendserver_proc.c appendserver_svc.c appendserver_xdr.c
+SOURCES_VERIFY = verifyserver_proc.c verifyserver_svc.c verifyserver_xdr.c
 
 # OBJECT FILES FOR EACH PROGRAM
 OBJS_CLIENT = $(SOURCES_CLIENT:%.c=%.o)

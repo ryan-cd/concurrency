@@ -60,12 +60,10 @@ void InitVerifyServer(char *hostname, VerifyArgs args)
 /* Parse LLString to char *. */
 char *parseLLString(LLString *llstring, int length)
 {
-    const int llbufsize = 1024; // Size of LLString buffer chunks
-
     char *result = calloc(length + 1, sizeof(char));  // Output string
     int parsed = 0;  // Amount of bytes parsed so far
     while (parsed < length) {
-        int used = (llstring->bytesLeft < llbufsize) ? llstring->bytesLeft : llbufsize;
+        int used = (llstring->bytesLeft < LLBUFSIZE) ? llstring->bytesLeft : LLBUFSIZE;
         memcpy(&result[parsed], llstring->buffer, used);
         parsed += used;
         llstring = llstring->next;
@@ -151,7 +149,7 @@ size_t threadFunc(char *hostname1, char *hostname2, int thread)
     // Verify the string
     size_t numSegmentsValid = 0;
 
-    LLString *llsegment; // Linked List structure to hold the segment
+    LLString *llsegment = NULL; // Linked List structure to hold the segment
     // Using -1 as the value to determine we're done.
     while (true) {
         llsegment = rpc_getseg_1(&thread, verifyClient);

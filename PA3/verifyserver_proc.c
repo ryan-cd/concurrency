@@ -13,7 +13,6 @@
 #define BUFLEN 2076
 
 VerifyArgs verifyArgs;
-const int llbufsize = 1024; // Size of LLString buffer chunks
 int segmentsChecked;
 
 struct sockaddr_in si_me, si_other;
@@ -97,9 +96,9 @@ LLString *createLLString(char *source, int length) {
 
     LLString *head = NULL;
     while (leftoverLength > 0) {
-        LLString *nextPart = malloc(sizeof(LLString));
+        LLString *nextPart = calloc(1, sizeof(LLString));
         nextPart->bytesLeft = leftoverLength;
-        int used = (leftoverLength < llbufsize) ? leftoverLength : llbufsize;
+        int used = (leftoverLength < LLBUFSIZE) ? leftoverLength : LLBUFSIZE;
         memcpy(nextPart->buffer, &source[parsed], used);
         parsed += used;
         leftoverLength -= used;
@@ -142,29 +141,37 @@ LLString *rpc_getseg_1_svc(int *thread, struct svc_req *req)
 {
     static LLString result; // For passing messages through result.bytesLeft
     static LLString **realResult = NULL; // A result buffer for each thread
-
     result.bytesLeft = 0;
+
     printf("RPC_GetSeg: Thread #%d\n", *thread);
 
+    // Determine if it's safe to read directly from rcvBuf
     if (stringReceived != 1) {
         printf("Requested string too soon. Resend the request.\n");
         return &result; // Client should read that bytesLeft is 0 and re-request.
     }
 
     if (realResult == NULL) {
-        realResult = calloc(verifyArgs.numThreads, sizeof(LLString));
+        // Allocate space for the LLString pointers for each thread
+        realResult = calloc(verifyArgs.numThreads, sizeof(LLString*));
     }
 
-    if (segmentsChecked < verifyArgs.numSegments) {
+    if (segmentsChecked < verifyArgs.numSegments)
+    {
+        // Check if the thread has requested a segment before
         if (realResult[*thread] != 0) {
-            freeLLString(realResult[*thread]); // Free memory of previous segment given the same thread
+            // Free memory of previous segment for the same thread
+            freeLLString(realResult[*thread]);
         }
+        // Create the LLString and put it in the allocated space for the specific thread
         realResult[*thread] = createLLString(&rcvBuf[segmentsChecked*verifyArgs.segLength], verifyArgs.segLength);
         segmentsChecked += 1;
         return realResult[*thread];
-    } else {
-        result.bytesLeft = -1; // Client should read -1 and stop requesting segments
+    }
+    else
+    {
         printf("No more segments.\n");
+        result.bytesLeft = -1; // Client should read -1 and stop requesting segments
         return &result;
     }
 }
@@ -172,11 +179,12 @@ LLString *rpc_getseg_1_svc(int *thread, struct svc_req *req)
 LLString *rpc_getstring_1_svc(int *thread, struct svc_req *req)
 {
     static LLString result; // For passing messages through result.bytesLeft
-    static LLString *realResult;
-
+    static LLString *realResult = NULL; // Pointer to the LLString
     result.bytesLeft = 0;
+
     printf("RPC_GetString\n");
 
+    // Determine if it's safe to read directly from rcvBuf
     if (stringReceived != 1) {
         printf("Requested string too soon. Resend the request.\n");
         return &result; // Client should read that bytesLeft is 0 and re-request.
@@ -185,7 +193,7 @@ LLString *rpc_getstring_1_svc(int *thread, struct svc_req *req)
     int stringLen = verifyArgs.segLength * verifyArgs.numSegments;
 
     if (realResult != NULL) {
-        freeLLString(realResult);  // Free memory if a string already exists
+        freeLLString(realResult); // Free memory if a string already exists
     }
     realResult = createLLString(rcvBuf, stringLen);
 
