@@ -13,42 +13,40 @@ typedef struct {
     char* str;
     unsigned int length;
     unsigned int index;
-	unsigned int segmentIndex;
+    unsigned int segmentIndex;
 } Str;
 
 /* Globals */
 Str string;
 AppendArgs appendArgs;
-char enforcementChars[3];
-bool stringSentToVerify = false;
+bool stringSentToVerify;
 
 /* Send string to the verify server */
 void sendStringToVerify()
 {
-	int s;
-	char myStr[BUFLEN];
+    int s;
+    char myStr[BUFLEN];
 
-	s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	if (s == -1)
-	{
-		printf("Socket failed to construct.");
-		exit(0);
-	}
-	else
-		printf("UDP Socket created successfully.\n");
+    s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (s == -1)
+    {
+        printf("Socket failed to construct.");
+        exit(0);
+    }
+    else
+        printf("UDP Socket created successfully.\n");
 
-	struct sockaddr_in sis;
-	int sislen=sizeof(sis);
-	memset((char *) &sis, 0, sizeof(sis));
-	sis.sin_family = AF_INET;
-	sis.sin_port = htons(OTHERPORT);
-	inet_aton(appendArgs.verifyHostname, &sis.sin_addr);
+    struct sockaddr_in sis;
+    int sislen=sizeof(sis);
+    memset((char *) &sis, 0, sizeof(sis));
+    sis.sin_family = AF_INET;
+    sis.sin_port = htons(OTHERPORT);
+    inet_aton(appendArgs.verifyHostname, &sis.sin_addr);
 
+    strncpy(myStr, string.str, BUFLEN);
+    sendto(s, myStr, sizeof(myStr), 0, (struct sockaddr *)&sis, sislen);
 
-	strncpy(myStr, string.str, BUFLEN);
-	sendto(s, myStr, sizeof(myStr), 0, (struct sockaddr *)&sis, sislen);
-
-	close(s);
+    close(s);
 }
 
 /**
@@ -57,7 +55,7 @@ void sendStringToVerify()
  */
 bool canWrite(char letter, char* segment, size_t segLength, char c[3], size_t property)
 {
-	size_t c0Initial = 0;
+    size_t c0Initial = 0;
     size_t c1Initial = 0;
     size_t c2Initial = 0;
     size_t cxInitial = 0;
@@ -141,54 +139,55 @@ bool canWrite(char letter, char* segment, size_t segLength, char c[3], size_t pr
 /* RPC Procedure: int RPC_InitAppendServer(AppendArgs) */
 int *rpc_initappendserver_1_svc(AppendArgs *args, struct svc_req *req)
 {
-	static int result = 1;
-	printf("RPC_InitAppendServer\n");
-	appendArgs = *args;
+    static int result = 1;
+    printf("RPC_InitAppendServer\n");
+    appendArgs = *args;
+    stringSentToVerify = false;
 
-	// Init string
-	string.length = args->numSegments * args->segLength;
-	if (string.str == NULL) {
-		string.str = calloc(string.length + 1, sizeof(char));
-	} else {
-		memset(string.str, 0, string.length + 1);
-	}
-	string.index = 0;
+    // Init string
+    string.length = args->numSegments * args->segLength;
+    if (string.str == NULL) {
+        string.str = calloc(string.length + 1, sizeof(char));
+    } else {
+        memset(string.str, 0, string.length + 1);
+    }
+    string.index = 0;
 
-	return &result;
+    return &result;
 }
 
 /* RPC Procedure: int RPC_Append(char) */
 int *rpc_append_1_svc(char *letter, struct svc_req *req)
 {
-	static int result = 1;
-	printf("RPC_Append\n");
-	printf("string [%d/%d]: %s \n", string.index, string.length, string.str);
+    static int result = 1;
+    printf("RPC_Append\n");
+    printf("string [%d/%d]: %s \n", string.index, string.length, string.str);
 
-	// Check if there is space to append
-	if (string.index >= string.length)
-	{
-		result = -1;
-	}
-	// Add letter (using enforcement)
-	else
-	{
-		#pragma omp critical
-		{
-			if (canWrite(*letter, &string.str[string.segmentIndex], appendArgs.segLength, appendArgs.c, appendArgs.property))
-			{
-				string.str[string.index++] = *letter;
-				string.segmentIndex = (string.index/appendArgs.segLength) * appendArgs.segLength;
-			}
-			result = 0;
-		}
-	}
+    // Check if there is space to append
+    if (string.index >= string.length)
+    {
+        result = -1;
+    }
+    // Add letter (using enforcement)
+    else
+    {
+        #pragma omp critical
+        {
+            if (canWrite(*letter, &string.str[string.segmentIndex], appendArgs.segLength, appendArgs.c, appendArgs.property))
+            {
+                string.str[string.index++] = *letter;
+                string.segmentIndex = (string.index/appendArgs.segLength) * appendArgs.segLength;
+            }
+            result = 0;
+        }
+    }
 
-	if (!stringSentToVerify && string.index >= string.length)
-	{
-		sendStringToVerify();
-		stringSentToVerify = true;
-	}
-	return &result;
+    if (!stringSentToVerify && string.index >= string.length)
+    {
+        sendStringToVerify();
+        stringSentToVerify = true;
+    }
+    return &result;
 }
 
 

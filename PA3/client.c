@@ -145,8 +145,7 @@ size_t threadFunc(char *hostname1, char *hostname2, int thread)
     }
 
     // Verify the string
-    // TODO
-    size_t numSegmentsValid = 1;
+    size_t numSegmentsValid = 0;
 
     LLString *llsegment; // Linked List structure to hold the segment
     // Using -1 as the value to determine we're done.
