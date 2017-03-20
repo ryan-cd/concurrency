@@ -371,8 +371,9 @@ int main(int argc, char **argv)
         printf("File could not be opened\n");
         exit(1);
     }
-    fprintf(file, "%s\n%ld\n", "finalString" /*finalString*/, numSegmentsValid);
-
+    fprintf(file, "%s\n%ld\n", finalString, numSegmentsValid);
+    fclose(file);
     free(finalString);
+
     return 0;
 }
