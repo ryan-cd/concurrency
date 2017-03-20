@@ -59,6 +59,7 @@ bool canWrite(char letter, char* segment, size_t segLength, char c[3], size_t pr
     size_t c1Initial = 0;
     size_t c2Initial = 0;
     size_t cxInitial = 0;
+    bool wildcards = appendArgs.numThreads > 3;
 
     if (letter == c[0]) {
         c0Initial++;
@@ -95,7 +96,9 @@ bool canWrite(char letter, char* segment, size_t segLength, char c[3], size_t pr
         for (int c1 = c1Initial; c1 <= segLength; c1++) {
             for (int c2 = c2Initial; c2 <= segLength; c2++) {
                 for (int cx = cxInitial; cx <= segLength; cx++) {
-                    if (segLength != c0 + c1 + c2 + cx) {
+                    if ((wildcards && (segLength != c0 + c1 + c2 + cx)) 
+                        || (!wildcards && (segLength != c0 + c1 + c2)))
+                    {
                         continue;
                     }
 

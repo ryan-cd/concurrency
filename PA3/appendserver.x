@@ -7,6 +7,7 @@
 	int property; /* f */
 	int segLength; /* L */
 	int numSegments; /* M */
+	int numThreads; /* N */
 	char c[3];
     char *verifyHostname;
 };
