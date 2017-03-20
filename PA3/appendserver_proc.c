@@ -1,3 +1,7 @@
+/**
+ *  Don Pham - phamd
+ *  Ryan Davis - davisr3
+ */
 #include <stdio.h>
 #include <pthread.h>
 #include "appendserver.h"

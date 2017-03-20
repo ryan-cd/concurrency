@@ -1,4 +1,8 @@
 /**
+ *  Don Pham - phamd
+ *  Ryan Davis - davisr3
+ */
+/**
  * Remote procedure RPC_InitAppendServer to send [f, L, M, C0, C1, C2,
  * host_name2] parameters to the append server.
  */

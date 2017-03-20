@@ -1,4 +1,8 @@
 /**
+ *  Don Pham - phamd
+ *  Ryan Davis - davisr3
+ */
+/**
  * RPC InitVerifyServer to send [N, L, M] parameters to the verify server.
  */
 
