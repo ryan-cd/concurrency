@@ -333,7 +333,7 @@ int main(int argc, char **argv)
     size_t numSegmentsValid = 0;
     #pragma omp parallel for num_threads(numThreads) reduction(+: numSegmentsValid)
     for (int i = 0; i < numThreads; ++i) {
-        numSegmentsValid = threadFunc(hostname1, hostname2, i);
+        numSegmentsValid += threadFunc(hostname1, hostname2, i);
     }
 
     // Connect to the Verify server to request the whole string.
