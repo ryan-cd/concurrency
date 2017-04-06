@@ -5,12 +5,12 @@ LDLIBS =
 
 # FILES
 EXE = pa4.x
-SRC = pa4.c
+SRC = pa4.c ppmFile.c
 OBJ = $(SRC:%.c=%.o)
 
 # EXAMPLE RUN
 run: $(EXE)
-	mpirun -np 4 ./$(EXE) r fox.ppm fox_blur.ppm
+	mpirun -np 4 ./$(EXE) 3 fox.ppm fox_blur.ppm
 
 # MAKE ALL
 all: $(EXE)
