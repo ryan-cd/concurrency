@@ -53,12 +53,14 @@ int main(int argc, char** argv) {
         sizePerThread = (cleanImage->width*cleanImage->height*3)/world_size;
         sectionWidth = cleanImage->width;
         sectionHeight = cleanImage->height/world_size;
-        if (sectionHeight % world_size != 0) {
+        if (cleanImage->height % world_size != 0) {
             printf("warning: height not divisible by number of processes; todo: handle it.\n");
         }
-        MPI_Send(&sizePerThread, 1, MPI_INT, 1, 0, MPI_COMM_WORLD);
-        MPI_Send(&sectionHeight, 1, MPI_INT, 1, 0, MPI_COMM_WORLD);
-        MPI_Send(&sectionWidth, 1, MPI_INT, 1, 0, MPI_COMM_WORLD);
+        for (int i = 1; i < world_size; i++) {
+            MPI_Send(&sizePerThread, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
+            MPI_Send(&sectionHeight, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
+            MPI_Send(&sectionWidth, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
+        }
     } else {
         MPI_Recv(&sizePerThread, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         MPI_Recv(&sectionHeight, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
