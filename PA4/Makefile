@@ -1,5 +1,6 @@
 .DEFAULT_GOAL := all
 MPICC = mpicc
+CFLAGS = -std=c99 -g
 LDFLAGS =
 LDLIBS =
 
@@ -10,7 +11,7 @@ OBJ = $(SRC:%.c=%.o)
 
 # EXAMPLE RUN
 run: $(EXE)
-	mpirun -np 4 ./$(EXE) 3 fox.ppm fox_blur.ppm
+	mpirun -np 2 ./$(EXE) 5 fox.ppm fox_blur.ppm
 
 # MAKE ALL
 all: $(EXE)
@@ -21,7 +22,7 @@ $(EXE): $(OBJ)
 
 # COMPILE
 %.o: %.c
-	$(MPICC) -c $^ -o $@
+	$(MPICC) $(CFLAGS) -c $^ -o $@
 
 # CLEAN
 clean:

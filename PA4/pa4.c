@@ -9,7 +9,7 @@ int clamp(int value, int min, int max) {
 
 int main(int argc, char** argv) {
     // Initialize the MPI environment
-    MPI_Init(NULL, NULL);
+    MPI_Init(&argc, &argv);
 
     // Get the number of processes
     int world_size;
@@ -29,20 +29,52 @@ int main(int argc, char** argv) {
            " out of %d processors\n",
            processor_name, world_rank, world_size);
 
+    // Command-line arguments
     int blurRadius = strtol(argv[1], NULL, 10);
     char *inputFile = argv[2];
     char *outputFile = argv[3];
 
-    // Read in PPM
-    Image *cleanImage = ImageRead(inputFile);
+    // Variables set only in the root process
+    Image *cleanImage = NULL;
+    Image *blurredImage = NULL;
+    unsigned char *cleanImageData = NULL; // For passing into scatter/gather
+    unsigned char *blurredImageData = NULL;
+
+    // Variables passed from the root process
+    int sizePerThread;
+    int sectionHeight;
+    int sectionWidth;
+
+    if (world_rank == 0) {
+        cleanImage = ImageRead(inputFile);
+        blurredImage = ImageCreate(cleanImage->width, cleanImage->height);
+        cleanImageData = cleanImage->data;
+        blurredImageData = blurredImage->data;
+        sizePerThread = (cleanImage->width*cleanImage->height*3)/world_size;
+        sectionWidth = cleanImage->width;
+        sectionHeight = cleanImage->height/world_size;
+        if (sectionHeight % world_size != 0) {
+            printf("warning: height not divisible by number of processes; todo: handle it.\n");
+        }
+        MPI_Send(&sizePerThread, 1, MPI_INT, 1, 0, MPI_COMM_WORLD);
+        MPI_Send(&sectionHeight, 1, MPI_INT, 1, 0, MPI_COMM_WORLD);
+        MPI_Send(&sectionWidth, 1, MPI_INT, 1, 0, MPI_COMM_WORLD);
+    } else {
+        MPI_Recv(&sizePerThread, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(&sectionHeight, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(&sectionWidth, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
+
+    // Image Sections
+    Image *cleanSection = ImageCreate(sectionWidth, sectionHeight);
+    Image *blurredSection = ImageCreate(sectionWidth, sectionHeight);
 
     // Scatter
+    MPI_Scatter(cleanImageData, sizePerThread, MPI_UNSIGNED_CHAR, cleanSection->data, sizePerThread, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 
-    // SEQUENTIAL VERSION
-    int height = cleanImage->height;
-    int width = cleanImage->width;
-    Image *blurredImage = ImageCreate(width, height);
-
+    // Do work
+    int height = sectionHeight;
+    int width = sectionWidth;
     for (int row = 0; row < height; ++row) {
         for (int col = 0; col < width; ++col) {
             // Bounds
@@ -58,19 +90,24 @@ int main(int argc, char** argv) {
                 // Take average of pixels
                 for (int y = minY; y < maxY; ++y) {
                     for (int x = minX; x < maxX; ++x) {
-                        sum += ImageGetPixel(cleanImage, x, y, channel);
+                        sum += ImageGetPixel(cleanSection, x, y, channel);
                         numPixels += 1;
                     }
                 }
                 sum = clamp(sum/numPixels, 0, 255);
                 // Write average into output
-                ImageSetPixel(blurredImage, col, row, channel, sum);
+                ImageSetPixel(blurredSection, col, row, channel, sum);
             }
         }
     }
 
     // Gather
-    ImageWrite(blurredImage, outputFile);
+    MPI_Gather(blurredSection->data, sizePerThread, MPI_UNSIGNED_CHAR, blurredImageData, sizePerThread, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+
+    // Write output to file
+    if (world_rank == 0) {
+        ImageWrite(blurredImage, outputFile);
+    }
 
     // Finalize the MPI environment.
     MPI_Finalize();
