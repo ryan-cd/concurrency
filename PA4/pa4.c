@@ -44,6 +44,7 @@ int main(int argc, char** argv) {
     int sizePerThread;
     int sectionHeight;
     int sectionWidth;
+    int remainderRows;
 
     if (world_rank == 0) {
         cleanImage = ImageRead(inputFile);
@@ -53,7 +54,8 @@ int main(int argc, char** argv) {
         sizePerThread = (cleanImage->width*cleanImage->height*3)/world_size;
         sectionWidth = cleanImage->width;
         sectionHeight = cleanImage->height/world_size;
-        if (cleanImage->height % world_size != 0) {
+        remainderRows = cleanImage->height % world_size;
+        if (remainderRows) {
             printf("warning: height not divisible by number of processes; todo: handle it.\n");
         }
         for (int i = 1; i < world_size; i++) {
@@ -65,6 +67,12 @@ int main(int argc, char** argv) {
         MPI_Recv(&sizePerThread, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         MPI_Recv(&sectionHeight, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         MPI_Recv(&sectionWidth, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+        // Last thread will handle the remaining rows
+        if (remainderRows && (world_rank == world_size - 1)) {
+            sectionHeight += remainderRows;
+            sizePerThread += cleanImage->width*remainderRows*3;
+        }
     }
 
     // Image Sections
@@ -73,6 +81,22 @@ int main(int argc, char** argv) {
 
     // Scatter
     MPI_Scatter(cleanImageData, sizePerThread, MPI_UNSIGNED_CHAR, cleanSection->data, sizePerThread, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+
+    unsigned char *pointer = (unsigned char *) malloc(sizePerThread);
+    if (pointer == NULL) {
+        printf("Error, memory full");
+    }
+    if (world_rank == 0) {
+        for (int i = 1; i < world_size; i++) {
+            // assign pointer to point to relevant section of cleanImageData
+
+            MPI_Send(&pointer, sizePerThread, MPI_UNSIGNED_CHAR, i, 1, MPI_COMM_WORLD);
+            printf("Clean image data 1: %d, pointer 1: %d\n", cleanImageData[1], pointer[1]);
+        }
+    } else {
+        MPI_Recv(&pointer, sizePerThread, MPI_UNSIGNED_CHAR, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
+    free(pointer);
 
     // Do work
     int height = sectionHeight;
