@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
     int sizePerThread;
     int sectionHeight;
     int sectionWidth;
-    int remainderRows;
+    int remainderRows = 0;
 
     if (world_rank == 0) {
         cleanImage = ImageRead(inputFile);
@@ -68,61 +68,85 @@ int main(int argc, char** argv) {
         MPI_Recv(&sectionHeight, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         MPI_Recv(&sectionWidth, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-        // Last thread will handle the remaining rows
-        if (remainderRows && (world_rank == world_size - 1)) {
-            sectionHeight += remainderRows;
-            sizePerThread += cleanImage->width*remainderRows*3;
-        }
+        // // Last thread will handle the remaining rows
+        // if (remainderRows && (world_rank == world_size - 1)) {
+        //     sectionHeight += remainderRows;
+        //     sizePerThread += cleanImage->width*remainderRows*3;
+        // }
     }
 
+    // todo: remainder rows should be added into sectionHeight for the last process
+
     // Image Sections
-    Image *cleanSection = ImageCreate(sectionWidth, sectionHeight);
+    int paddedHeight;
+    if ((world_rank == 0) || (world_rank == world_size - 1)) {
+        paddedHeight = sectionHeight + blurRadius;
+    } else {
+        paddedHeight = sectionHeight + blurRadius * 2;
+    }
+    Image *cleanSection = ImageCreate(sectionWidth, paddedHeight);
     Image *blurredSection = ImageCreate(sectionWidth, sectionHeight);
 
     // Scatter
-    MPI_Scatter(cleanImageData, sizePerThread, MPI_UNSIGNED_CHAR, cleanSection->data, sizePerThread, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+    //MPI_Scatter(cleanImageData, sizePerThread, MPI_UNSIGNED_CHAR, cleanSection->data+paddedOffset, sizePerThread, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 
-    unsigned char *pointer = (unsigned char *) malloc(sizePerThread);
-    if (pointer == NULL) {
-        printf("Error, memory full");
-    }
-    if (world_rank == 0) {
-        for (int i = 1; i < world_size; i++) {
-            // assign pointer to point to relevant section of cleanImageData
+    // unsigned char *pointer = (unsigned char *) malloc(sizePerThread);
+    // if (pointer == NULL) {
+    //     printf("Error, memory full");
+    // }
 
-            MPI_Send(&pointer, sizePerThread, MPI_UNSIGNED_CHAR, i, 1, MPI_COMM_WORLD);
-            printf("Clean image data 1: %d, pointer 1: %d\n", cleanImageData[1], pointer[1]);
+    if (world_rank == 0)
+    {
+        // For process 0, directly use cleanImageData
+        free(cleanSection->data);
+        cleanSection->data = cleanImageData;
+
+        // For interior processes
+        unsigned char *cleanImagePtr = cleanImageData;
+        size_t offset =  sectionWidth * (sectionHeight - blurRadius) * 3;
+        for (int i = 1; i < world_size - 1; i++) {
+            MPI_Send(cleanImagePtr+offset, sizePerThread + sectionWidth*blurRadius*2*3, MPI_UNSIGNED_CHAR, i, 1, MPI_COMM_WORLD);
+            offset += sectionWidth * sectionHeight * 3;
         }
-    } else {
-        MPI_Recv(&pointer, sizePerThread, MPI_UNSIGNED_CHAR, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+        // For last process (due to remainder rows)
+        MPI_Send(cleanImagePtr+offset, sizePerThread + sectionWidth*blurRadius*3 + sectionWidth*remainderRows*3, MPI_UNSIGNED_CHAR, world_size-1, 1, MPI_COMM_WORLD);
     }
-    free(pointer);
+    else if (world_rank < world_size - 1)
+    {
+        MPI_Recv(cleanSection->data, sizePerThread + sectionWidth*blurRadius*2*3, MPI_UNSIGNED_CHAR, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
+    else
+    {
+        MPI_Recv(cleanSection->data, sizePerThread + sectionWidth*blurRadius*3 + sectionWidth*remainderRows*3, MPI_UNSIGNED_CHAR, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
+    // free(pointer);
 
     // Do work
-    int height = sectionHeight;
-    int width = sectionWidth;
-    for (int row = 0; row < height; ++row) {
-        for (int col = 0; col < width; ++col) {
+    for (int row = (world_rank == 0) ? 0 : blurRadius; row < sectionHeight + ((world_rank == 0) ? 0 : blurRadius); ++row) {
+        for (int col = 0; col < sectionWidth; ++col) {
             // Bounds
-            int minX = clamp(col - blurRadius, 0, width);
-            int maxX = clamp(col + blurRadius, 0, width);
-            int minY = clamp(row - blurRadius, 0, height);
-            int maxY = clamp(row + blurRadius, 0, height);
+            int minX = clamp(col - blurRadius, 0, sectionWidth);
+            int maxX = clamp(col + blurRadius, 0, sectionWidth);
+            int minY = clamp(row - blurRadius, 0, paddedHeight);
+            int maxY = clamp(row + blurRadius, 0, paddedHeight);
 
             // For each channel (r,g,b)
             for (int channel = 0; channel < 3; ++channel) {
                 int sum = 0;
                 int numPixels = 0;
                 // Take average of pixels
-                for (int y = minY; y < maxY; ++y) {
-                    for (int x = minX; x < maxX; ++x) {
-                        sum += ImageGetPixel(cleanSection, x, y, channel);
+                for (int y = minY; y <= maxY; ++y) {
+                    for (int x = minX; x <= maxX; ++x) {
+                        //sum += ImageGetPixel(cleanSection, x, y, channel);
+                        sum += cleanSection->data[(y * sectionWidth + x) * 3 + channel];
                         numPixels += 1;
                     }
                 }
                 sum = clamp(sum/numPixels, 0, 255);
                 // Write average into output
-                ImageSetPixel(blurredSection, col, row, channel, sum);
+                //ImageSetPixel(blurredSection, col, row - ((world_rank == 0) ? 0 : blurRadius), channel, sum);
+                blurredSection->data[((row - ((world_rank == 0) ? 0 : blurRadius)) * sectionWidth + col) * 3 + channel] = sum;
             }
         }
     }
