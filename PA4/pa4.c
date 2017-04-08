@@ -40,6 +40,10 @@ int main(int argc, char** argv) {
     unsigned char *cleanImageData = NULL; // Pointer to cleanImage->data
     unsigned char *blurredImageData = NULL; // Pointer to blurredImage->data
 
+    // For gatherv
+    int *rcounts = NULL; // Size of each section.
+    int *displs = NULL; // Displacement of each section.
+
     // Variables passed from the root process
     int sectionWidth; // The section width (without padding).
     int sectionHeight; // The section height (without padding).
@@ -62,10 +66,16 @@ int main(int argc, char** argv) {
         sectionHeight = cleanImage->height/world_size;
         int remainderRows = cleanImage->height % world_size;
 
-        if (remainderRows) {
-            printf("warning: height not divisible by number of processes; todo: handle it.\n");
-        }
+        // Set up sizes for gatherv
+        rcounts = malloc(world_size * sizeof(int));
+        displs = malloc(world_size * sizeof(int));
+        for (int i = 0; i < world_size; i++) {
+            rcounts[i] = sectionWidth * sectionHeight * 3;
+            displs[i] = i * rcounts[i];
+        } // The last section is potentially larger than the rest
+        rcounts[world_size-1] = sectionWidth * (sectionHeight + remainderRows) * 3;
 
+        // Send parameters
         for (int i = 1; i < world_size; i++) {
             if (i == world_size - 1) { // Last process gets the remainder rows
                 sectionHeight += remainderRows;
@@ -148,7 +158,7 @@ int main(int argc, char** argv) {
     }
 
     // Gather
-    MPI_Gather(blurredSection->data, sectionByteSize, MPI_UNSIGNED_CHAR, blurredImageData, sectionByteSize, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+    MPI_Gatherv(blurredSection->data, sectionByteSize, MPI_UNSIGNED_CHAR, blurredImageData, rcounts, displs, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 
     // Write output to file
     if (world_rank == 0) {
@@ -164,6 +174,8 @@ int main(int argc, char** argv) {
         free(cleanSection); // cleanSection->data was already freed
         free(blurredSection->data);
         free(blurredSection);
+        free(rcounts);
+        free(displs);
     } else {
         free(cleanSection->data);
         free(cleanSection);
