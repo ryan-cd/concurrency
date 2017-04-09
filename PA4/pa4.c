@@ -39,6 +39,7 @@ int main(int argc, char** argv) {
     Image *blurredImage = NULL;
     unsigned char *cleanImageData = NULL; // Pointer to cleanImage->data
     unsigned char *blurredImageData = NULL; // Pointer to blurredImage->data
+    int remainderRows = 0;
 
     // For gatherv
     int *rcounts = NULL; // Size of each section.
@@ -64,7 +65,7 @@ int main(int argc, char** argv) {
 
         sectionWidth = cleanImage->width;
         sectionHeight = cleanImage->height/world_size;
-        int remainderRows = cleanImage->height % world_size;
+        remainderRows = cleanImage->height % world_size;
 
         // Set up sizes for gatherv
         rcounts = malloc(world_size * sizeof(int));
@@ -115,8 +116,8 @@ int main(int argc, char** argv) {
         // For the rest
         unsigned char *cleanImagePtr = cleanImageData + sectionWidth * (sectionHeight - blurRadius) * 3;
         for (int i = 1; i < world_size; i++) {
-            if (i == world_size - 1) { // Last process has one-sided padding
-                sendByteSize -= sectionWidth * blurRadius * 3;
+            if (i == world_size - 1) { // Last process has remainder rows and just one-sided padding
+                sendByteSize = sectionByteSize + sectionWidth * (remainderRows+blurRadius) * 3;
             }
             MPI_Send(cleanImagePtr, sendByteSize, MPI_UNSIGNED_CHAR, i, 1, MPI_COMM_WORLD);
             cleanImagePtr += sectionWidth * sectionHeight * 3;
