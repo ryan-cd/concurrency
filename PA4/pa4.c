@@ -4,6 +4,7 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <mpi.h>
 #include "ppmFile.h"
 
@@ -52,10 +53,10 @@ int main(int argc, char** argv) {
     // Variables passed from the root process
     int sectionWidth; // The section width (without padding).
     int sectionHeight; // The section height (without padding).
+    int sendByteSize; // Number of bytes for the section (including padding).
 
     // Variables set in each process
     int sectionByteSize; // The size in bytes of the section (without padding).
-    int paddedByteSize; // The size in bytes of the section with padding.
     int paddedHeight; // The section height after padding the image.
     Image *cleanSection = NULL;
     Image *blurredSection = NULL;
@@ -99,45 +100,48 @@ int main(int argc, char** argv) {
 
     // Process variables
     sectionByteSize = sectionWidth * sectionHeight * 3;
-
-    // one process => no padding
-    if (world_size == 1) {
-        paddedHeight = sectionHeight;
-        paddedByteSize = sectionByteSize;
-    }
-    // first and last process => one-sided padding
-    else if ((world_rank == 0) || (world_rank == world_size - 1)) {
-        paddedHeight = sectionHeight + blurRadius;
-        paddedByteSize = sectionByteSize + sectionWidth * blurRadius * 3;
-    }
-    // interior processes => two-sided padding
-    else {
-        paddedHeight = sectionHeight + blurRadius * 2;
-        paddedByteSize = sectionByteSize + sectionWidth * blurRadius * 2 * 3;
-    }
-
-    cleanSection = ImageCreate(sectionWidth, paddedHeight);
     blurredSection = ImageCreate(sectionWidth, sectionHeight);
 
     // Scatter the image
-    if (world_rank == 0) {
-        int sendByteSize = sectionByteSize + sectionWidth * blurRadius * 2 * 3;
-
-        // For process 0, directly use cleanImageData
+    if (world_rank == 0)
+    {
+        // For root process
+        paddedHeight = clamp(sectionHeight + ((world_size == 1) ? 0 : blurRadius), 0, cleanImage->height);
+        cleanSection = ImageCreate(sectionWidth, paddedHeight);
         free(cleanSection->data);
-        cleanSection->data = cleanImageData;
+        cleanSection->data = cleanImageData; // Directly use cleanImageData
 
-        // For the rest
-        unsigned char *cleanImagePtr = cleanImageData + sectionWidth * (sectionHeight - blurRadius) * 3;
+        // For the rest of the processes
+        unsigned char *cleanImagePtr = NULL;
+        unsigned char *cleanImageEndPtr = cleanImageData + cleanImage->width * cleanImage->height * 3;
+
         for (int i = 1; i < world_size; i++) {
-            if (i == world_size - 1) { // Last process has remainder rows and just one-sided padding
-                sendByteSize = sectionByteSize + sectionWidth * (remainderRows+blurRadius) * 3;
-            }
+            // Pointer to the beginning of each process's unpadded section
+            cleanImagePtr = cleanImageData + i * sectionByteSize;
+
+            // paddedHeight is clamped so that it doesn't pass the absolute image bounds
+            int rowsAbove = clamp((cleanImagePtr - cleanImageData) / 3 / sectionWidth, 0, INT_MAX);
+            int rowsBelow = clamp((cleanImageEndPtr - cleanImagePtr - sectionByteSize) / 3 / sectionWidth, 0, INT_MAX);
+            paddedHeight = sectionHeight
+                            + clamp(rowsAbove, 0, blurRadius)
+                            + clamp(rowsBelow, 0, blurRadius + ((i == world_size - 1) ? remainderRows : 0));
+
+            // Shift the pointer for the above-padding
+            cleanImagePtr -= sectionWidth * clamp(rowsAbove, 0, blurRadius) * 3;
+
+            // Calculate the size that the process will recieve
+            sendByteSize = sectionWidth * paddedHeight * 3;
+
+            MPI_Send(&sendByteSize, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
             MPI_Send(cleanImagePtr, sendByteSize, MPI_UNSIGNED_CHAR, i, 1, MPI_COMM_WORLD);
-            cleanImagePtr += sectionWidth * sectionHeight * 3;
         }
-    } else {
-        MPI_Recv(cleanSection->data, paddedByteSize, MPI_UNSIGNED_CHAR, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
+    else
+    {
+        MPI_Recv(&sendByteSize, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        paddedHeight = sendByteSize / sectionWidth / 3;
+        cleanSection = ImageCreate(sectionWidth, paddedHeight); // Allocate space for the data
+        MPI_Recv(cleanSection->data, sendByteSize, MPI_UNSIGNED_CHAR, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
 
     // Do work on the image sections
