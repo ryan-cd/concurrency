@@ -93,15 +93,25 @@ int main(int argc, char** argv) {
         MPI_Recv(&sectionHeight, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
 
-    // Process variables; first and last process have one-sided padding
+    // Process variables
     sectionByteSize = sectionWidth * sectionHeight * 3;
-    if ((world_rank == 0) || (world_rank == world_size - 1)) {
+
+    // one process => no padding
+    if (world_size == 1) {
+        paddedHeight = sectionHeight;
+        paddedByteSize = sectionByteSize;
+    }
+    // first and last process => one-sided padding
+    else if ((world_rank == 0) || (world_rank == world_size - 1)) {
         paddedHeight = sectionHeight + blurRadius;
         paddedByteSize = sectionByteSize + sectionWidth * blurRadius * 3;
-    } else {
+    }
+    // interior processes => two-sided padding
+    else {
         paddedHeight = sectionHeight + blurRadius * 2;
         paddedByteSize = sectionByteSize + sectionWidth * blurRadius * 2 * 3;
     }
+
     cleanSection = ImageCreate(sectionWidth, paddedHeight);
     blurredSection = ImageCreate(sectionWidth, sectionHeight);
 
