@@ -5,16 +5,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
-#include <mpi.h>
+#include <cuda.h>
 #include "ppmFile.h"
 
 int clamp(int value, int min, int max) {
     return (value < min) ? min : ((value > max) ? max : value);
 }
 
+__global__ void blur(int sectionWidth, int sectionHeight) 
+{
+    int id = (blockIdx.z * gridDim.x * gridDim.y + blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    printf("Hello world from %i. Section width is: %i, Section height is: %i. \n", id, sectionWidth, sectionHeight);
+}
+
 int main(int argc, char** argv) {
+    int world_size = 10;
     // Initialize the MPI environment
-    MPI_Init(&argc, &argv);
+    /*MPI_Init(&argc, &argv);
 
     // Get the number of processes
     int world_size;
@@ -33,7 +40,7 @@ int main(int argc, char** argv) {
     printf("Hello world from processor %s, rank %d"
            " out of %d processors\n",
            processor_name, world_rank, world_size);
-
+    */ 
     // Command-line arguments
     int blurRadius = strtol(argv[1], NULL, 10);
     char *inputFile = argv[2];
@@ -54,6 +61,7 @@ int main(int argc, char** argv) {
     int sectionWidth; // The section width (without padding).
     int sectionHeight; // The section height (without padding).
     int sendByteSize; // Number of bytes for the section (including padding).
+    int *test = (int *) malloc(world_size * sizeof(int));
 
     // Variables set in each process
     int sectionByteSize; // The size in bytes of the section (without padding).
@@ -61,43 +69,46 @@ int main(int argc, char** argv) {
     Image *cleanSection = NULL;
     Image *blurredSection = NULL;
 
-    if (world_rank == 0)
-    {
-        cleanImage = ImageRead(inputFile);
-        blurredImage = ImageCreate(cleanImage->width, cleanImage->height);
-        cleanImageData = cleanImage->data;
-        blurredImageData = blurredImage->data;
+    //if (world_rank == 0)
+    //{
+    cleanImage = ImageRead(inputFile);
+    blurredImage = ImageCreate(cleanImage->width, cleanImage->height);
+    cleanImageData = cleanImage->data;
+    blurredImageData = blurredImage->data;
 
-        sectionWidth = cleanImage->width;
-        sectionHeight = cleanImage->height/world_size;
-        remainderRows = cleanImage->height % world_size;
+    sectionWidth = cleanImage->width;
+    sectionHeight = cleanImage->height/world_size;
+    remainderRows = cleanImage->height % world_size;
 
-        // Set up sizes for gatherv
-        rcounts = malloc(world_size * sizeof(int));
-        displs = malloc(world_size * sizeof(int));
-        for (int i = 0; i < world_size; i++) {
-            rcounts[i] = sectionWidth * sectionHeight * 3;
-            displs[i] = i * rcounts[i];
-        } // The last section is potentially larger than the rest
-        rcounts[world_size-1] = sectionWidth * (sectionHeight + remainderRows) * 3;
+    // Set up sizes for gatherv
+    rcounts = (int *) malloc(world_size * sizeof(int));
+    displs = (int *) malloc(world_size * sizeof(int));
+    for (int i = 0; i < world_size; i++) {
+      rcounts[i] = sectionWidth * sectionHeight * 3;
+        displs[i] = i * rcounts[i];
+    } // The last section is potentially larger than the rest
+    rcounts[world_size-1] = sectionWidth * (sectionHeight + remainderRows) * 3;
 
-        // Send parameters
-        for (int i = 1; i < world_size; i++) {
-            if (i == world_size - 1) { // Last process gets the remainder rows
-                sectionHeight += remainderRows;
-            }
-            MPI_Send(&sectionWidth, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
-            MPI_Send(&sectionHeight, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
+    // Send parameters
+    for (int i = 1; i < world_size; i++) {
+        if (i == world_size - 1) { // Last process gets the remainder rows
+            sectionHeight += remainderRows;
         }
-        // Reset sectionHeight for the root process
-        sectionHeight -= remainderRows;
+        //MPI_Send(&sectionWidth, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
+        //MPI_Send(&sectionHeight, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
     }
+    // Reset sectionHeight for the root process
+    sectionHeight -= remainderRows;
+
+    blur<<<1, world_size>>>(sectionWidth, sectionHeight);
+    cudaDeviceSynchronize();
+    /*}
     else
     {
         MPI_Recv(&sectionWidth, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         MPI_Recv(&sectionHeight, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
-
+    
     // Process variables
     sectionByteSize = sectionWidth * sectionHeight * 3;
     blurredSection = ImageCreate(sectionWidth, sectionHeight);
@@ -203,5 +214,6 @@ int main(int argc, char** argv) {
     }
 
     // Finalize the MPI environment.
-    MPI_Finalize();
+    MPI_Finalize();*/
+    return 1;
 }
