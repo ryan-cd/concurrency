@@ -20,7 +20,6 @@ __global__ void blur(int world_size, int blurRadius, int sectionWidth, int secti
     int imageWidth = sectionWidth;
 
     int sectionByteSize = sectionWidth * sectionHeight * 3;
-    int paddedHeight;
 
     // For the rest of the processes
     unsigned char *cleanImagePtr = NULL;
@@ -32,13 +31,18 @@ __global__ void blur(int world_size, int blurRadius, int sectionWidth, int secti
     // paddedHeight is clamped so that it doesn't pass the absolute image bounds
     int rowsAbove = clamp((cleanImagePtr - cleanImageData) / 3 / sectionWidth, 0, INT_MAX);
     int rowsBelow = clamp((cleanImageEndPtr - cleanImagePtr - sectionByteSize) / 3 / sectionWidth, 0, INT_MAX);
-    paddedHeight = sectionHeight
+    int paddedHeight = sectionHeight
                     + clamp(rowsAbove, 0, blurRadius)
-                    + clamp(rowsBelow, 0, blurRadius + ((id == world_size - 1 || id == 0) ? remainderRows : 0));
+                    + clamp(rowsBelow, 0, blurRadius + ((id == world_size - 1) ? remainderRows : 0));
+
     // Shift the pointer for the above-padding
     cleanImagePtr -= sectionWidth * clamp(rowsAbove, 0, blurRadius) * 3;
 
-    // Adjust sectionHeight for the last process
+    // Pointers for each process to work with
+    unsigned char *cleanSection = cleanImagePtr;
+    unsigned char *blurredSection = blurredImageData + id * sectionByteSize;
+
+    // Adjust sectionHeight for the last process, after calculating bounds
     if (id == world_size - 1) {
         sectionHeight += remainderRows;
     }
@@ -46,11 +50,8 @@ __global__ void blur(int world_size, int blurRadius, int sectionWidth, int secti
     printf("Hello world from %i. Section width is: %i, Section height is: %i. Padded height is %i. First pixel is (%u, %u, %u). \n", id, sectionWidth, sectionHeight, paddedHeight, cleanImagePtr[0], cleanImagePtr[1], cleanImagePtr[2]);
 
     // Do work on the image sections
-    int topPaddingOffset = (id == 0) ? 0 : blurRadius;
-    int bottomPaddingOffset = sectionHeight + ((id == 0) ? 0 : blurRadius);
-
-    unsigned char *cleanSection = cleanImageData + id * sectionByteSize;
-    unsigned char *blurredSection = blurredImageData + id * sectionByteSize;
+    int topPaddingOffset = clamp(rowsAbove, 0, blurRadius);
+    int bottomPaddingOffset = sectionHeight + topPaddingOffset;
 
     for (int row = topPaddingOffset; row < bottomPaddingOffset; ++row) {
         for (int col = 0; col < sectionWidth; ++col) {
