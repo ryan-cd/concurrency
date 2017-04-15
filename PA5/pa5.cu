@@ -12,28 +12,20 @@ __device__ int clamp(int value, int min, int max) {
     return (value < min) ? min : ((value > max) ? max : value);
 }
 
-__global__ void blur(int world_size, int blurRadius, int sectionWidth, int sectionHeight, 
-                     int remainderRows, unsigned char *cleanImageData, unsigned char *blurredImageData) 
+__global__ void blur(int world_size, int blurRadius, int sectionWidth, int sectionHeight,
+                     int remainderRows, unsigned char *cleanImageData, unsigned char *blurredImageData)
 {
     int id = (blockIdx.z * gridDim.x * gridDim.y + blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     int imageHeight = sectionHeight * world_size + remainderRows;
     int imageWidth = sectionWidth;
-    if (id == world_size - 1) {
-        sectionHeight += remainderRows;
-    }
+
     int sectionByteSize = sectionWidth * sectionHeight * 3;
-        // For root process
-    int paddedHeight;// = clamp(sectionHeight + ((world_size == 1) ? 0 : blurRadius), 0, imageHeight);
-        /*cleanSection = ImageCreate(sectionWidth, paddedHeight);
-        free(cleanSection->data);
-        cleanSection->data = cleanImageData; // Directly use cleanImageData
-    */
+    int paddedHeight;
 
     // For the rest of the processes
     unsigned char *cleanImagePtr = NULL;
     unsigned char *cleanImageEndPtr = cleanImageData + imageWidth * imageHeight * 3;
 
-        //for (int i = 1; i < world_size; i++) {
     // Pointer to the beginning of each process's unpadded section
     cleanImagePtr = cleanImageData + id * sectionByteSize; // id was 'i' in the for loop
 
@@ -42,7 +34,7 @@ __global__ void blur(int world_size, int blurRadius, int sectionWidth, int secti
     int rowsBelow = clamp((cleanImageEndPtr - cleanImagePtr - sectionByteSize) / 3 / sectionWidth, 0, INT_MAX);
     if (id == 0) {
         paddedHeight = clamp(sectionHeight + ((world_size == 1) ? 0 : blurRadius), 0, imageHeight);
-    } else {    
+    } else {
         paddedHeight = sectionHeight
                         + clamp(rowsAbove, 0, blurRadius)
                         + clamp(rowsBelow, 0, blurRadius + ((id == world_size - 1) ? remainderRows : 0));
@@ -50,14 +42,45 @@ __global__ void blur(int world_size, int blurRadius, int sectionWidth, int secti
     // Shift the pointer for the above-padding
     cleanImagePtr -= sectionWidth * clamp(rowsAbove, 0, blurRadius) * 3;
 
-    // Calculate the size that the process will recieve
-            //sendByteSize = sectionWidth * paddedHeight * 3;
+    // Adjust sectionHeight for the last process
+    if (id == world_size - 1) {
+        sectionHeight += remainderRows;
+    }
 
-            //MPI_Send(&sendByteSize, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
-            //MPI_Send(cleanImagePtr, sendByteSize, MPI_UNSIGNED_CHAR, i, 1, MPI_COMM_WORLD);
-        //}
-    //}*/
     printf("Hello world from %i. Section width is: %i, Section height is: %i. Padded height is %i. First pixel is (%u, %u, %u). \n", id, sectionWidth, sectionHeight, paddedHeight, cleanImagePtr[0], cleanImagePtr[1], cleanImagePtr[2]);
+
+    // Do work on the image sections
+    int topPaddingOffset = (id == 0) ? 0 : blurRadius;
+    int bottomPaddingOffset = sectionHeight + ((id == 0) ? 0 : blurRadius);
+
+    unsigned char *cleanSection = cleanImageData + id * sectionByteSize;
+    unsigned char *blurredSection = blurredImageData + id * sectionByteSize;
+
+    for (int row = topPaddingOffset; row < bottomPaddingOffset; ++row) {
+        for (int col = 0; col < sectionWidth; ++col) {
+            // Bounds
+            int minX = clamp(col - blurRadius, 0, sectionWidth);
+            int maxX = clamp(col + blurRadius, 0, sectionWidth);
+            int minY = clamp(row - blurRadius, 0, paddedHeight);
+            int maxY = clamp(row + blurRadius, 0, paddedHeight);
+
+            // For each channel (r,g,b)
+            for (int channel = 0; channel < 3; ++channel) { // TODO: flip loops for performance
+                int sum = 0;
+                int numPixels = 0;
+                // Take average of pixels
+                for (int y = minY; y <= maxY; ++y) {
+                    for (int x = minX; x <= maxX; ++x) {
+                        sum += cleanSection[(y * sectionWidth + x) * 3 + channel];
+                        numPixels += 1;
+                    }
+                }
+                sum = clamp(sum/numPixels, 0, 255);
+                // Write average into output
+                blurredSection[((row - topPaddingOffset) * sectionWidth + col) * 3 + channel] = sum;
+            }
+        }
+    }
 }
 
 int main(int argc, char** argv) {
@@ -82,7 +105,7 @@ int main(int argc, char** argv) {
     printf("Hello world from processor %s, rank %d"
            " out of %d processors\n",
            processor_name, world_rank, world_size);
-    */ 
+    */
     // Command-line arguments
     int blurRadius = strtol(argv[1], NULL, 10);
     char *inputFile = argv[2];
@@ -118,9 +141,9 @@ int main(int argc, char** argv) {
     blurredImageData = blurredImage->data;
 
     sectionWidth = cleanImage->width;
-    sectionHeight = cleanImage->height/world_size;
+    sectionHeight = cleanImage->height / world_size;
     remainderRows = cleanImage->height % world_size;
-
+/*
     // Set up sizes for gatherv
     rcounts = (int *) malloc(world_size * sizeof(int));
     displs = (int *) malloc(world_size * sizeof(int));
@@ -140,7 +163,7 @@ int main(int argc, char** argv) {
     }
     // Reset sectionHeight for the root process
     sectionHeight -= remainderRows;
-
+*/
     unsigned char *cleanImageDataDevice = NULL;
     unsigned char *blurredImageDataDevice = NULL;
     (cudaMalloc ((void **) &cleanImageDataDevice, sizeof(unsigned char) * 3 * cleanImage->width * cleanImage->height));
@@ -150,14 +173,19 @@ int main(int argc, char** argv) {
 
     (cudaMemcpy(blurredImageDataDevice, blurredImageData, sizeof(unsigned char) * 3 * cleanImage->width * cleanImage->height, cudaMemcpyHostToDevice));
     blur<<<1, world_size>>>(world_size, blurRadius, sectionWidth, sectionHeight, remainderRows, cleanImageDataDevice, blurredImageDataDevice);
+    (cudaMemcpy(blurredImageData, blurredImageDataDevice, sizeof(unsigned char) * 3 * cleanImage->width * cleanImage->height, cudaMemcpyDeviceToHost));
+
     (cudaDeviceSynchronize());
+
+    ImageWrite(blurredImage, outputFile);
+
     /*}
     else
     {
         MPI_Recv(&sectionWidth, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         MPI_Recv(&sectionHeight, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
-    
+
     // Process variables
     sectionByteSize = sectionWidth * sectionHeight * 3;
     blurredSection = ImageCreate(sectionWidth, sectionHeight);
@@ -202,38 +230,6 @@ int main(int argc, char** argv) {
         paddedHeight = sendByteSize / sectionWidth / 3;
         cleanSection = ImageCreate(sectionWidth, paddedHeight); // Allocate space for the data
         MPI_Recv(cleanSection->data, sendByteSize, MPI_UNSIGNED_CHAR, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    }
-
-    // Do work on the image sections
-    int topPaddingOffset = (world_rank == 0) ? 0 : blurRadius;
-    int bottomPaddingOffset = sectionHeight + ((world_rank == 0) ? 0 : blurRadius);
-
-    for (int row = topPaddingOffset; row < bottomPaddingOffset; ++row) {
-        for (int col = 0; col < sectionWidth; ++col) {
-            // Bounds
-            int minX = clamp(col - blurRadius, 0, sectionWidth);
-            int maxX = clamp(col + blurRadius, 0, sectionWidth);
-            int minY = clamp(row - blurRadius, 0, paddedHeight);
-            int maxY = clamp(row + blurRadius, 0, paddedHeight);
-
-            // For each channel (r,g,b)
-            for (int channel = 0; channel < 3; ++channel) {
-                int sum = 0;
-                int numPixels = 0;
-                // Take average of pixels
-                for (int y = minY; y <= maxY; ++y) {
-                    for (int x = minX; x <= maxX; ++x) {
-                        //sum += ImageGetPixel(cleanSection, x, y, channel);
-                        sum += cleanSection->data[(y * sectionWidth + x) * 3 + channel]; // In-lined
-                        numPixels += 1;
-                    }
-                }
-                sum = clamp(sum/numPixels, 0, 255);
-                // Write average into output
-                //ImageSetPixel(blurredSection, col, row - topPaddingOffset, channel, sum);
-                blurredSection->data[((row - topPaddingOffset) * sectionWidth + col) * 3 + channel] = sum;  // In-lined
-            }
-        }
     }
 
     // Gather
