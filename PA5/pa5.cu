@@ -6,7 +6,9 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <cuda.h>
+extern "C" {
 #include "ppmFile.h"
+}
 
 //This error checking macro is from http://stackoverflow.com/questions/14038589/what-is-the-canonical-way-to-check-for-errors-using-the-cuda-runtime-api
 #define CUDA_CHECK_ERROR(response) { check((response), __FILE__, __LINE__); }
