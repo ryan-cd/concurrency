@@ -32,13 +32,9 @@ __global__ void blur(int world_size, int blurRadius, int sectionWidth, int secti
     // paddedHeight is clamped so that it doesn't pass the absolute image bounds
     int rowsAbove = clamp((cleanImagePtr - cleanImageData) / 3 / sectionWidth, 0, INT_MAX);
     int rowsBelow = clamp((cleanImageEndPtr - cleanImagePtr - sectionByteSize) / 3 / sectionWidth, 0, INT_MAX);
-    if (id == 0) {
-        paddedHeight = clamp(sectionHeight + ((world_size == 1) ? 0 : blurRadius), 0, imageHeight);
-    } else {
-        paddedHeight = sectionHeight
-                        + clamp(rowsAbove, 0, blurRadius)
-                        + clamp(rowsBelow, 0, blurRadius + ((id == world_size - 1) ? remainderRows : 0));
-    }
+    paddedHeight = sectionHeight
+                    + clamp(rowsAbove, 0, blurRadius)
+                    + clamp(rowsBelow, 0, blurRadius + ((id == world_size - 1 || id == 0) ? remainderRows : 0));
     // Shift the pointer for the above-padding
     cleanImagePtr -= sectionWidth * clamp(rowsAbove, 0, blurRadius) * 3;
 
@@ -172,7 +168,7 @@ int main(int argc, char** argv) {
     (cudaMemcpy(cleanImageDataDevice, cleanImageData, sizeof(unsigned char) * 3 * cleanImage->width * cleanImage->height, cudaMemcpyHostToDevice));
 
     (cudaMemcpy(blurredImageDataDevice, blurredImageData, sizeof(unsigned char) * 3 * cleanImage->width * cleanImage->height, cudaMemcpyHostToDevice));
-    blur<<<1, world_size>>>(world_size, blurRadius, sectionWidth, sectionHeight, remainderRows, cleanImageDataDevice, blurredImageDataDevice);
+    blur<<<world_size, 1>>>(world_size, blurRadius, sectionWidth, sectionHeight, remainderRows, cleanImageDataDevice, blurredImageDataDevice);
     (cudaMemcpy(blurredImageData, blurredImageDataDevice, sizeof(unsigned char) * 3 * cleanImage->width * cleanImage->height, cudaMemcpyDeviceToHost));
 
     (cudaDeviceSynchronize());
