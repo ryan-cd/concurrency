@@ -8,20 +8,60 @@
 #include <cuda.h>
 #include "ppmFile.h"
 
-int clamp(int value, int min, int max) {
+__device__ int clamp(int value, int min, int max) {
     return (value < min) ? min : ((value > max) ? max : value);
 }
 
-__global__ void blur(int world_size, int sectionWidth, int sectionHeight, int remainderRows) 
+__global__ void blur(int world_size, int blurRadius, int sectionWidth, int sectionHeight, 
+                     int remainderRows, unsigned char *cleanImageData, unsigned char *blurredImageData) 
 {
     int id = (blockIdx.z * gridDim.x * gridDim.y + blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (id == world_size - 1)
+    int imageHeight = sectionHeight * world_size + remainderRows;
+    int imageWidth = sectionWidth;
+    if (id == world_size - 1) {
         sectionHeight += remainderRows;
-    printf("Hello world from %i. Section width is: %i, Section height is: %i. \n", id, sectionWidth, sectionHeight);
+    }
+    int sectionByteSize = sectionWidth * sectionHeight * 3;
+        // For root process
+    int paddedHeight;// = clamp(sectionHeight + ((world_size == 1) ? 0 : blurRadius), 0, imageHeight);
+        /*cleanSection = ImageCreate(sectionWidth, paddedHeight);
+        free(cleanSection->data);
+        cleanSection->data = cleanImageData; // Directly use cleanImageData
+    */
+
+    // For the rest of the processes
+    unsigned char *cleanImagePtr = NULL;
+    unsigned char *cleanImageEndPtr = cleanImageData + imageWidth * imageHeight * 3;
+
+        //for (int i = 1; i < world_size; i++) {
+    // Pointer to the beginning of each process's unpadded section
+    cleanImagePtr = cleanImageData + id * sectionByteSize; // id was 'i' in the for loop
+
+    // paddedHeight is clamped so that it doesn't pass the absolute image bounds
+    int rowsAbove = clamp((cleanImagePtr - cleanImageData) / 3 / sectionWidth, 0, INT_MAX);
+    int rowsBelow = clamp((cleanImageEndPtr - cleanImagePtr - sectionByteSize) / 3 / sectionWidth, 0, INT_MAX);
+    if (id == 0) {
+        paddedHeight = clamp(sectionHeight + ((world_size == 1) ? 0 : blurRadius), 0, imageHeight);
+    } else {    
+        paddedHeight = sectionHeight
+                        + clamp(rowsAbove, 0, blurRadius)
+                        + clamp(rowsBelow, 0, blurRadius + ((id == world_size - 1) ? remainderRows : 0));
+    }
+    // Shift the pointer for the above-padding
+    cleanImagePtr -= sectionWidth * clamp(rowsAbove, 0, blurRadius) * 3;
+
+    // Calculate the size that the process will recieve
+            //sendByteSize = sectionWidth * paddedHeight * 3;
+
+            //MPI_Send(&sendByteSize, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
+            //MPI_Send(cleanImagePtr, sendByteSize, MPI_UNSIGNED_CHAR, i, 1, MPI_COMM_WORLD);
+        //}
+    //}*/
+    printf("Hello world from %i. Section width is: %i, Section height is: %i. Padded height is %i. First pixel is (%u, %u, %u). \n", id, sectionWidth, sectionHeight, paddedHeight, cleanImagePtr[0], cleanImagePtr[1], cleanImagePtr[2]);
 }
 
 int main(int argc, char** argv) {
-    int world_size = 7;
+    int world_size = 10;
     // Initialize the MPI environment
     /*MPI_Init(&argc, &argv);
 
@@ -63,7 +103,6 @@ int main(int argc, char** argv) {
     int sectionWidth; // The section width (without padding).
     int sectionHeight; // The section height (without padding).
     int sendByteSize; // Number of bytes for the section (including padding).
-    int *test = (int *) malloc(world_size * sizeof(int));
 
     // Variables set in each process
     int sectionByteSize; // The size in bytes of the section (without padding).
@@ -102,8 +141,16 @@ int main(int argc, char** argv) {
     // Reset sectionHeight for the root process
     sectionHeight -= remainderRows;
 
-    blur<<<1, world_size>>>(world_size, sectionWidth, sectionHeight, remainderRows);
-    cudaDeviceSynchronize();
+    unsigned char *cleanImageDataDevice = NULL;
+    unsigned char *blurredImageDataDevice = NULL;
+    (cudaMalloc ((void **) &cleanImageDataDevice, sizeof(unsigned char) * 3 * cleanImage->width * cleanImage->height));
+
+    (cudaMalloc ((void **) &blurredImageDataDevice, sizeof(unsigned char) * 3 * cleanImage->width * cleanImage->height));
+    (cudaMemcpy(cleanImageDataDevice, cleanImageData, sizeof(unsigned char) * 3 * cleanImage->width * cleanImage->height, cudaMemcpyHostToDevice));
+
+    (cudaMemcpy(blurredImageDataDevice, blurredImageData, sizeof(unsigned char) * 3 * cleanImage->width * cleanImage->height, cudaMemcpyHostToDevice));
+    blur<<<1, world_size>>>(world_size, blurRadius, sectionWidth, sectionHeight, remainderRows, cleanImageDataDevice, blurredImageDataDevice);
+    (cudaDeviceSynchronize());
     /*}
     else
     {
