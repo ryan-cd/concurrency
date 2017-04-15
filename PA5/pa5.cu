@@ -12,14 +12,16 @@ int clamp(int value, int min, int max) {
     return (value < min) ? min : ((value > max) ? max : value);
 }
 
-__global__ void blur(int sectionWidth, int sectionHeight) 
+__global__ void blur(int world_size, int sectionWidth, int sectionHeight, int remainderRows) 
 {
     int id = (blockIdx.z * gridDim.x * gridDim.y + blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    if (id == world_size - 1)
+        sectionHeight += remainderRows;
     printf("Hello world from %i. Section width is: %i, Section height is: %i. \n", id, sectionWidth, sectionHeight);
 }
 
 int main(int argc, char** argv) {
-    int world_size = 10;
+    int world_size = 7;
     // Initialize the MPI environment
     /*MPI_Init(&argc, &argv);
 
@@ -100,7 +102,7 @@ int main(int argc, char** argv) {
     // Reset sectionHeight for the root process
     sectionHeight -= remainderRows;
 
-    blur<<<1, world_size>>>(sectionWidth, sectionHeight);
+    blur<<<1, world_size>>>(world_size, sectionWidth, sectionHeight, remainderRows);
     cudaDeviceSynchronize();
     /*}
     else
